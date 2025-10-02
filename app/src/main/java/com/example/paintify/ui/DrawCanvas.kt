@@ -16,7 +16,8 @@ enum class BrushType { LINE, CIRCLE, RECTANGLE }
 data class Stroke(
     val points: List<Offset>,
     val brush: BrushType,
-    val color: Color
+    val color: Color,
+    val widthPx: Float = 4f // pass pen width
 )
 
 /** Stateless canvas: draws strokes and emits drag events to the ViewModel */
@@ -51,25 +52,27 @@ fun DrawingCanvas(
                             color = stroke.color,
                             start = pts[i],
                             end = pts[i + 1],
-                            strokeWidth = 4f
+                            strokeWidth = stroke.widthPx
                         )
                     }
                 }
                 BrushType.CIRCLE -> {
+                    val radius = maxOf(4f, stroke.widthPx / 1.5f)
                     stroke.points.forEach { p ->
                         drawCircle(
                             color = stroke.color,
-                            radius = 15f,
-                            center = p
+                            radius = radius,
+                            center = p,
                         )
                     }
                 }
                 BrushType.RECTANGLE -> {
+                    val half = maxOf(4f, stroke.widthPx / 2f) // CHANGE: optional
                     stroke.points.forEach { p ->
                         drawRect(
                             color = stroke.color,
-                            topLeft = Offset(p.x - 8f, p.y - 8f),
-                            size = Size(16f, 16f)
+                            topLeft = Offset(p.x - half, p.y - half),
+                            size = Size(half, half)
                         )
                     }
                 }

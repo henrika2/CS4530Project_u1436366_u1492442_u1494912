@@ -1,6 +1,3 @@
 package com.example.paintify.models
 
-//class ToolType {
-//
-//
-//}
+enum class ToolType { PEN, ERASER }

@@ -1,4 +1,3 @@
 package com.example.paintify.models
 
-class ShapeType {
-}
+enum class ShapeType { LineShape, RectShape, CircleShape }

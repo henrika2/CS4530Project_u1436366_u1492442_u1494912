@@ -26,13 +26,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.draw.clipToBounds
 
 // ===== ViewModel (persists across rotations) =====
-enum class BrushType { LINE, CIRCLE, RECTANGLE }
 class DrawingViewModel : ViewModel() {
     private val _strokes = MutableStateFlow<List<Stroke>>(emptyList())
     val strokes: StateFlow<List<Stroke>> = _strokes
 
     private val _selectedBrush = MutableStateFlow(BrushType.CIRCLE)
     val selectedBrush: StateFlow<BrushType> = _selectedBrush
+
+
 
     private val _selectedColor = MutableStateFlow(Color.Black)
     val selectedColor: StateFlow<Color> = _selectedColor
@@ -44,6 +45,12 @@ class DrawingViewModel : ViewModel() {
 
     fun setBrush(b: BrushType) { _selectedBrush.value = b }
     fun setColor(c: Color) { _selectedColor.value = c }
+
+
+    //
+    private val tool = MutableStateFlow(com.example.paintify.models.ToolType.PEN)
+
+    private val domainStroke = MutableStateFlow<List<com.example.paintify.models.CanvasStroke>>(emptyList())
 
     fun onDragStart(offset: Offset) {
         currentPoints = listOf(offset)
@@ -138,12 +145,6 @@ fun DrawScreen(
                         enabled = selectedColor != Color.Blue,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Blue)
                     ) { Text("BLUE") }
-
-                    Button(
-                        onClick = { vm.setColor(Color.White) },
-                        enabled = selectedColor != Color.White,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
-                    ) { Text("ERASER") }
                 }
             }
         }
