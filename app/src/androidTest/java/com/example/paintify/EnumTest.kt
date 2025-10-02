@@ -23,8 +23,8 @@ class EnumTest {
     @Test
     fun shapeTypeContainsAllShapes() {
         val names = ShapeType.entries.map { it.name }.toSet()
-        assertTrue(names.contains("LineShape"))
-        assertTrue(names.contains("RectShape"))
-        assertTrue(names.contains("CircleShape"))
+        assertTrue(names.contains("LINE"))
+        assertTrue(names.contains("RECT"))
+        assertTrue(names.contains("CIRCLE"))
     }
 }

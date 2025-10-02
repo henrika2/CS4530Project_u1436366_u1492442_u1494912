@@ -18,13 +18,11 @@ class CanvasStrokeSimpleTest {
         val points = listOf(Offset(0f, 0f), Offset(10f, 10f))
 
         val s = CanvasStroke(
-            id = 1L,
             points = points,
             paint = params,
-            shapeType = ShapeType.LineShape,
+            shapeType = ShapeType.LINE,
             )
-        assertEquals(1L, s.id)
-        assertEquals(ShapeType.LineShape, s.shapeType)
+        assertEquals(ShapeType.LINE, s.shapeType)
         assertEquals(points, s.points)
         assertEquals(params, s.paint)
     }
@@ -32,8 +30,7 @@ class CanvasStrokeSimpleTest {
     @Test
     fun copy_canChangePointsWithoutMutatingOriginal() {
         val base = CanvasStroke(
-            id = 7L,
-            shapeType = ShapeType.RectShape,
+            shapeType = ShapeType.RECT,
             points = listOf(Offset(0f, 0f), Offset(4f, 4f)),
             paint = PaintParams(Color.Green, 9f, isEraser = false)
         )

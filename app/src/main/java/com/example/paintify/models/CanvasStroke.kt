@@ -8,7 +8,7 @@ import androidx.compose.ui.geometry.Offset
  * If shapeType != null -> points[0] = anchor, points[1] = current end.
  */
 data class CanvasStroke(
-    val id: Long,
+//    val id: Long,
     val points: List<Offset>,
     val paint: PaintParams,
     val shapeType: ShapeType? = null

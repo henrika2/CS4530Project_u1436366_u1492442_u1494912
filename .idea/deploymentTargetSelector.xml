@@ -11,6 +11,9 @@
       <SelectionState runConfigName="EnumTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
+      <SelectionState runConfigName="shapeTypeContainsAllShapes()">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
       <SelectionState runConfigName="PaintParamsTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
