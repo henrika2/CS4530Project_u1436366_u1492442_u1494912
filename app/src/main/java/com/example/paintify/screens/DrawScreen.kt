@@ -15,58 +15,104 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.paintify.ui.BrushType
-import com.example.paintify.ui.DrawingCanvas
-import com.example.paintify.ui.Stroke
+import androidx.compose.ui.geometry.Offset
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.material3.Slider
 
-// ===== ViewModel (persists across rotations) =====
+
+import com.example.paintify.ui.BrushType
+import com.example.paintify.ui.DrawingCanvas
+import com.example.paintify.ui.Stroke
+
+import com.example.paintify.models.ToolType
+import com.example.paintify.models.ShapeType
+import com.example.paintify.models.PaintParams
+import com.example.paintify.models.CanvasStroke
+
 class DrawingViewModel : ViewModel() {
+
     private val _strokes = MutableStateFlow<List<Stroke>>(emptyList())
     val strokes: StateFlow<List<Stroke>> = _strokes
 
     private val _selectedBrush = MutableStateFlow(BrushType.CIRCLE)
     val selectedBrush: StateFlow<BrushType> = _selectedBrush
 
-
-
     private val _selectedColor = MutableStateFlow(Color.Black)
     val selectedColor: StateFlow<Color> = _selectedColor
 
-    // active stroke while dragging
+    private val tool = MutableStateFlow(ToolType.PEN)
+    private val penWidthPx = MutableStateFlow(12f)
+    val penWidth: StateFlow<Float> = penWidthPx
+
+    private val domainStrokes = MutableStateFlow<List<CanvasStroke>>(emptyList())
+
     private var currentPoints: List<Offset> = emptyList()
-    private var activeBrush: BrushType = _selectedBrush.value
-    private var activeColor: Color = _selectedColor.value
+    private var nextId: Long = 1L
 
-    fun setBrush(b: BrushType) { _selectedBrush.value = b }
-    fun setColor(c: Color) { _selectedColor.value = c }
+    fun setBrush(b: BrushType) {
+        _selectedBrush.value = b
+        tool.value = ToolType.PEN
+    }
 
-
-    //
-    private val tool = MutableStateFlow(com.example.paintify.models.ToolType.PEN)
-
-    private val domainStroke = MutableStateFlow<List<com.example.paintify.models.CanvasStroke>>(emptyList())
-
+    fun setColor(c: Color) {
+        _selectedColor.value = c
+        tool.value = if (c == Color.White) ToolType.ERASER else ToolType.PEN
+    }
+    fun setWidthPx(width: Float) {
+        penWidthPx.value = width.coerceIn(1f, 128f)
+    }
     fun onDragStart(offset: Offset) {
         currentPoints = listOf(offset)
-        activeBrush = _selectedBrush.value
-        activeColor = _selectedColor.value
-        _strokes.update { it + Stroke(points = currentPoints, brush = activeBrush, color = activeColor) }
-    }
 
+        val shape = when (_selectedBrush.value) {
+            BrushType.LINE      -> ShapeType.LineShape
+            BrushType.CIRCLE    -> ShapeType.CircleShape
+            BrushType.RECTANGLE -> ShapeType.RectShape
+        }
+
+        val params = PaintParams(
+            color = _selectedColor.value,
+            widthPx = penWidthPx.value,
+            isEraser = (tool.value == ToolType.ERASER)
+        )
+
+        val domain = CanvasStroke(
+            id = nextId++,
+            shapeType = shape,
+            points = currentPoints,
+            paint = params
+        )
+        domainStrokes.value = domainStrokes.value + domain
+        pushUiMirror()
+    }
     fun onDragMove(offset: Offset) {
         currentPoints = currentPoints + offset
-        _strokes.update { list ->
-            list.dropLast(1) + Stroke(points = currentPoints, brush = activeBrush, color = activeColor)
+        domainStrokes.update { list ->
+            list.dropLast(1) + list.last().copy(points = currentPoints)
+        }
+        pushUiMirror()
+    }
+    fun onDragEnd() {
+        currentPoints = emptyList()
+    }
+    private fun pushUiMirror() {
+        _strokes.value = domainStrokes.value.map { s ->
+            val uiBrush = when (s.shapeType) {
+                ShapeType.LineShape   -> BrushType.LINE
+                ShapeType.CircleShape -> BrushType.CIRCLE
+                ShapeType.RectShape   -> BrushType.RECTANGLE
+                else -> {}
+            }
+            Stroke(
+                points = s.points,
+                brush = uiBrush as BrushType,
+                color = s.paint.color,
+                widthPx = s.paint.widthPx
+            )
         }
     }
-
-    fun onDragEnd() { currentPoints = emptyList() }
 }
 
 @Composable
@@ -77,6 +123,8 @@ fun DrawScreen(
     val strokes by vm.strokes.collectAsState()
     val selectedBrush by vm.selectedBrush.collectAsState()
     val selectedColor by vm.selectedColor.collectAsState()
+    val penWidth by vm.penWidth.collectAsState()
+
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -85,11 +133,11 @@ fun DrawScreen(
     ) {
         Spacer(modifier = Modifier.height(100.dp))
 
-        // Canvas area (square)
+        // Canvas area
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White) // optional
+                .background(Color.White)
         ) {
             // Stateless canvas: draws strokes and sends drag callbacks
             DrawingCanvas(
@@ -99,7 +147,7 @@ fun DrawScreen(
                 onEnd = vm::onDragEnd
             )
 
-            // === Six inline buttons, anchored to bottom-right of the canvas ===
+            // Bottom-right controls (unchanged)
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -125,14 +173,22 @@ fun DrawScreen(
                     ) { Text("RECTANGLE") }
                 }
 
-                // Color buttons
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // CHANGE: Pen width slider (affects NEW strokes)
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Pen: ${penWidth.toInt()} px")
+                    Slider(
+                        value = penWidth,
+                        onValueChange = vm::setWidthPx,
+                        valueRange = 1f..64f
+                    )
+                }
 
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = { vm.setColor(Color.Black) },
                         enabled = selectedColor != Color.Black,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
-                    ) { Text("BLACK")}
+                    ) { Text("BLACK") }
 
                     Button(
                         onClick = { vm.setColor(Color.Red) },
@@ -145,8 +201,21 @@ fun DrawScreen(
                         enabled = selectedColor != Color.Blue,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Blue)
                     ) { Text("BLUE") }
+
+                    Button(
+                        onClick = { vm.setColor(Color.White) },
+                        enabled = selectedColor != Color.White,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray)
+                    ) { Text("ERASER") }
+
                 }
             }
         }
     }
 }
+
+
+
+
+
+
