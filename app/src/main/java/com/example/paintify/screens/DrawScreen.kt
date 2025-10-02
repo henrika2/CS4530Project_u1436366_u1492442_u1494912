@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.draw.clipToBounds
 
 // ===== ViewModel (persists across rotations) =====
+enum class BrushType { LINE, CIRCLE, RECTANGLE }
 class DrawingViewModel : ViewModel() {
     private val _strokes = MutableStateFlow<List<Stroke>>(emptyList())
     val strokes: StateFlow<List<Stroke>> = _strokes
@@ -137,6 +138,12 @@ fun DrawScreen(
                         enabled = selectedColor != Color.Blue,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Blue)
                     ) { Text("BLUE") }
+
+                    Button(
+                        onClick = { vm.setColor(Color.White) },
+                        enabled = selectedColor != Color.White,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+                    ) { Text("ERASER") }
                 }
             }
         }
