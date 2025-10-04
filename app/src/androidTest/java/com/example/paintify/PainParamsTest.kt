@@ -1,19 +1,24 @@
+/**
+ * Paintify - Paint Parameters Unit Tests
+ * --------------------------------------
+ * Validates the correctness and immutability of the PaintParams data class.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * Ensures that PaintParams correctly stores its fields, supports equality
+ * and hash code comparison, and that the copy() function produces independent
+ * instances allowing modification of specific attributes without affecting the original.
+ */
+
 package com.example.paintify
 
-
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.paintify.models.ShapeType
-import com.example.paintify.models.ToolType
-import com.example.paintify.models.CanvasStroke
-import com.example.paintify.models.PaintParams
 import androidx.compose.ui.graphics.Color
-
+import com.example.paintify.models.PaintParams
 import org.junit.Test
-import org.junit.runner.RunWith
-
-
-
 import org.junit.Assert.*
 
 class PaintParamsTest {
@@ -43,8 +48,7 @@ class PaintParamsTest {
         val eraser = base.copy(isEraser = true)
         assertEquals(14f, wider.widthPx, 0.0f)
         assertTrue(eraser.isEraser)
-        // original unchanged
-        assertEquals(6f, base.widthPx,0.0f)
+        assertEquals(6f, base.widthPx, 0.0f)
         assertFalse(base.isEraser)
     }
 }

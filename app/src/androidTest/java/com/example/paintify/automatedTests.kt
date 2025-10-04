@@ -1,6 +1,20 @@
+/**
+ * Paintify - Automated Tests
+ * --------------------------------
+ * Runs Compose UI and ViewModel integration tests on an Android device/emulator.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * Verifies core behaviors including brush/color selection, stroke creation via gestures,
+ * pen width clamping and slider changes, splash visibility timing, and canvas interactions.
+ */
+
 package com.example.paintify
 
-import SplashScreen
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsEnabled
@@ -9,35 +23,26 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.paintify.models.ShapeType
 import com.example.paintify.screens.DrawingViewModel
-import com.example.paintify.R
 import com.example.paintify.screens.DrawScreen
-
+import com.example.paintify.screens.SplashScreen
 import org.junit.Test
 import org.junit.runner.RunWith
-
 import org.junit.Assert.*
 import org.junit.Rule
 
-/**
- * Instrumented test, which will execute on an Android device.
- *
- * See [testing documentation](http://d.android.com/tools/testing).
- */
 @RunWith(AndroidJUnit4::class)
-class ExampleInstrumentedTest {
+class automatedTests {
 
     @get:Rule
     val rule = createComposeRule()
 
     @Test
     fun useAppContext() {
-        // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("com.example.paintify", appContext.packageName)
     }
@@ -86,19 +91,14 @@ class ExampleInstrumentedTest {
 
     @Test
     fun splashScreen_showsLogo() {
-
         rule.setContent {
             SplashScreen(
                 logoResId = R.drawable.logo
             )
         }
 
-        // initially visible
         rule.onNodeWithTag("splashLogo").assertExists()
-
-        // advance time past holdMillis
         rule.mainClock.advanceTimeBy(2500L)
-
         rule.onNodeWithTag("splashLogo").assertDoesNotExist()
     }
 
@@ -111,10 +111,8 @@ class ExampleInstrumentedTest {
             DrawScreen(navController = rememberNavController(), vm = vm)
         }
 
-        // Switch to LINE brush (starts as CIRCLE)
         rule.onNodeWithText("LINE").assertIsEnabled().performClick()
 
-        // Draw a simple stroke on the canvas
         val canvas = rule.onNodeWithTag("drawingCanvas")
         canvas.assertExists()
         canvas.performTouchInput {
@@ -124,7 +122,6 @@ class ExampleInstrumentedTest {
             up()
         }
 
-        // Verify stroke recorded
         rule.runOnIdle {
             assert(vm.strokes.value.isNotEmpty())
         }
@@ -142,7 +139,6 @@ class ExampleInstrumentedTest {
         val slider = rule.onNodeWithTag("penWidthSlider")
         slider.assertExists()
 
-        // Move slider toward max
         slider.performTouchInput {
             val c = center
             down(c)
@@ -151,7 +147,6 @@ class ExampleInstrumentedTest {
         }
 
         rule.runOnIdle {
-            // should have increased above default 12f
             assert(vm.penWidth.value > 12f)
         }
     }
@@ -174,6 +169,4 @@ class ExampleInstrumentedTest {
         rule.onNodeWithText("ERASER").performClick()
         rule.runOnIdle { assert(vm.selectedColor.value == androidx.compose.ui.graphics.Color.White) }
     }
-
-
 }

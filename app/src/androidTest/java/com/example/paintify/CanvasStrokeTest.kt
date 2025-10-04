@@ -1,12 +1,27 @@
-package com.example.paintify
+/**
+ * Paintify - Canvas Stroke Unit Tests
+ * -----------------------------------
+ * Validates core behavior of the CanvasStroke model including property
+ * assignment, copying, and immutability of stroke data.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * Ensures that CanvasStroke objects correctly store provided parameters
+ * and that the `copy()` operation produces independent instances without
+ * mutating the original stroke.
+ */
 
+package com.example.paintify
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.*
 import org.junit.Test
 import com.example.paintify.models.ShapeType
-import com.example.paintify.models.ToolType
 import com.example.paintify.models.CanvasStroke
 import com.example.paintify.models.PaintParams
 
@@ -21,7 +36,7 @@ class CanvasStrokeSimpleTest {
             points = points,
             paint = params,
             shapeType = ShapeType.LINE,
-            )
+        )
         assertEquals(ShapeType.LINE, s.shapeType)
         assertEquals(points, s.points)
         assertEquals(params, s.paint)
@@ -37,10 +52,7 @@ class CanvasStrokeSimpleTest {
 
         val moved = base.copy(points = base.points + Offset(8f, 8f))
 
-        // base unchanged
         assertEquals(2, base.points.size)
-
-        // moved has one more point and is not equal to base
         assertEquals(3, moved.points.size)
         assertNotEquals(base, moved)
     }

@@ -5,19 +5,16 @@
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="PenWidth()">
+      <SelectionState runConfigName="ExampleInstrumentedTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="splash_fades_and_calls_onFinished()">
+      <SelectionState runConfigName="PaintParamsTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="splashScreen_showsLogo()">
+      <SelectionState runConfigName="EnumTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="can_switch_brush_and_draw_on_canvas()">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="slider_changes_pen_width()">
+      <SelectionState runConfigName="CanvasStrokeSimpleTest">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>
