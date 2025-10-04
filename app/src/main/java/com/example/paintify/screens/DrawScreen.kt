@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import androidx.compose.material3.Slider
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
 
 
 //import com.example.paintify.ui.BrushType
@@ -185,7 +186,7 @@ fun DrawScreen(
                     }
 
                     // CHANGE: Pen width slider (affects NEW strokes)
-                    Column(horizontalAlignment = Alignment.End) {
+                    Column(Modifier.testTag("penWidthSlider"), horizontalAlignment = Alignment.End) {
                         Text("Pen: ${penWidth.toInt()} px")
                         Slider(
                             value = penWidth,

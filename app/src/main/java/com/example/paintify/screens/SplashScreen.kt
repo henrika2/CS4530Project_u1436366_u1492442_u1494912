@@ -16,6 +16,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 
 @Composable
 fun SplashScreen(
@@ -56,11 +57,12 @@ fun SplashScreen(
         ) {
             Image(
                 painter = painterResource(id = logoResId),
-                contentDescription = null,
+                contentDescription = "splashLogo",
                 modifier = Modifier
                     .size(170.dp)
                     .scale(scale)
                     .alpha(alpha)
+                    .testTag("splashLogo")
             )
         }
     }

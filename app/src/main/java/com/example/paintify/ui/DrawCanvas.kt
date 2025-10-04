@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import com.example.paintify.models.ShapeType
 
 // Shared model types
@@ -44,6 +45,7 @@ fun DrawingCanvas(
                     onDragEnd = { onEnd() }
                 )
             }
+            .testTag("drawingCanvas")
     ) {
         strokes.forEach { stroke ->
             when (stroke.brush) {
