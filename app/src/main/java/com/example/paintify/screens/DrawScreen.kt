@@ -18,6 +18,7 @@
 
 package com.example.paintify.screens
 
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -47,6 +48,9 @@ import com.example.paintify.models.CanvasStroke
 import com.example.paintify.data.DrawingRepository
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory
 import com.example.paintify.DrawApplication
+import androidx.activity.viewModels
+
+
 
 /**
  * ViewModel class responsible for managing all drawing-related states
@@ -166,7 +170,9 @@ class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() 
 @Composable
 fun DrawScreen(
     navController: NavHostController,
-    vm: DrawingViewModel = viewModel()
+    vm: DrawingViewModel = viewModel(
+        factory = DrawingViewModelProvider.Factory
+    )
 ) {
     val strokes by vm.strokes.collectAsState()
     val selectedBrush by vm.selectedBrush.collectAsState()
@@ -285,14 +291,14 @@ Provides a [ViewModelProvider.Factory] for creating the [CourseViewModel].*
 This factory retrieves the [CourseRepository] from the [CourseApplication]
 singleton and supplies it to the ViewModel constructor.*
 This ensures lifecycle-aware dependency injection across the app.*/
-object CourseViewModelProvider {
+object DrawingViewModelProvider {
     val Factory = viewModelFactory {
         initializer {
             DrawingViewModel(
                 //fetches the application singleton
                 (this[AndroidViewModelFactory.APPLICATION_KEY]
                         //and then extracts the repository in it
-                        as DrawApplication).DrawingRepository
+                        as DrawApplication).drawingRepository
             )
         }
     }

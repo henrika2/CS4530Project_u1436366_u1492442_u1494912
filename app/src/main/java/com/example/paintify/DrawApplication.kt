@@ -5,7 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.SupervisorJob
 import com.example.paintify.data.AppDatabase
-import DrawingRepository
+import com.example.paintify.data.DrawingRepository
 /**
 
 Assignment 3
@@ -20,8 +20,8 @@ class DrawApplication : Application() {
         Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java,
-            "courses_database"
+            "drawing_database"
         ).build()
     }
-    val courseRepository by lazy { DrawingRepository(scope, db.drawingDao()) }
+    val drawingRepository by lazy { DrawingRepository(this, scope, db.drawingDao()) }
 }

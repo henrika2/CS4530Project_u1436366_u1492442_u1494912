@@ -21,10 +21,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.rememberNavController
 import com.example.paintify.Navigation.AppNavHost
 import com.example.paintify.ui.theme.PaintifyTheme
+import kotlin.getValue
 
 /**
  * MainActivity - the main launcher activity for Paintify.
@@ -36,6 +38,7 @@ import com.example.paintify.ui.theme.PaintifyTheme
  *  - Displaying the app’s primary navigation host.
  */
 class MainActivity : ComponentActivity() {
+//    val vm: CourseViewModel by viewModels { CourseViewModelProvider.Factory }
 
     /**
      * Called when the activity is created.
