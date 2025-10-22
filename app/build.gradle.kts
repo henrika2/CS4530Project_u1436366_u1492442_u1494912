@@ -69,4 +69,14 @@ dependencies {
 
     // Coroutines on Android (needed for viewModelScope/Dispatchers, etc.)
     implementation(libs.kotlinx.coroutines.android)
+
+
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:<ver>")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:<ver>")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:<ver>")
+    implementation("androidx.compose.material3:material3:<ver>")
+
+    implementation("androidx.navigation:navigation-compose:2.7.7") // or your latest
+
+
 }
