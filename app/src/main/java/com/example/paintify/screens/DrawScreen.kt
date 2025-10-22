@@ -30,7 +30,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavHostController
+import com.example.paintify.data.DrawingData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -41,12 +44,15 @@ import com.example.paintify.models.ToolType
 import com.example.paintify.models.ShapeType
 import com.example.paintify.models.PaintParams
 import com.example.paintify.models.CanvasStroke
+import com.example.paintify.data.DrawingRepository
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory
+import com.example.paintify.DrawApplication
 
 /**
  * ViewModel class responsible for managing all drawing-related states
  * such as brush type, color, pen width, and drawn strokes.
  */
-class DrawingViewModel : ViewModel() {
+class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() {
 
     // Stores the strokes currently displayed on the canvas
     private val _strokes = MutableStateFlow<List<Stroke>>(emptyList())
@@ -269,6 +275,25 @@ fun DrawScreen(
                     ) { Text("ERASER", color = Color.Gray) }
                 }
             }
+        }
+    }
+}
+
+/**
+
+Provides a [ViewModelProvider.Factory] for creating the [CourseViewModel].*
+This factory retrieves the [CourseRepository] from the [CourseApplication]
+singleton and supplies it to the ViewModel constructor.*
+This ensures lifecycle-aware dependency injection across the app.*/
+object CourseViewModelProvider {
+    val Factory = viewModelFactory {
+        initializer {
+            DrawingViewModel(
+                //fetches the application singleton
+                (this[AndroidViewModelFactory.APPLICATION_KEY]
+                        //and then extracts the repository in it
+                        as DrawApplication).DrawingRepository
+            )
         }
     }
 }
