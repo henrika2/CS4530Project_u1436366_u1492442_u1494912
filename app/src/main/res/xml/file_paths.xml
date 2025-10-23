@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- match FileStore save location -->
+<paths>
+    <!-- external app pictures directory /Pictures/paintify -->
     <external-files-path
-        name="paintify_pics_ext"
-        path="Pictures/paintify/" />
+        name="pictures"
+        path="Pictures/paintify" />
+    <!-- internal app files directory /files/paintify_pics -->
     <files-path
-        name="paintify_pics_int"
-        path="paintify_pics/" />
+        name="internal_pics"
+        path="paintify_pics" />
 </paths>

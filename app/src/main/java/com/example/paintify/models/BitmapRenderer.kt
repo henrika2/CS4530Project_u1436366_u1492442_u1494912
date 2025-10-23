@@ -1,4 +1,5 @@
-package com.example.paintify.models// BitmapRenderer.kt
+package com.example.paintify.models
+
 import android.graphics.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -27,7 +28,6 @@ class BitmapRenderer {
 
             when (s.brush) {
                 ShapeType.LINE -> {
-                    // draw as a polyline
                     for (i in 1 until s.points.size) {
                         val p0 = s.points[i - 1]
                         val p1 = s.points[i]
@@ -35,7 +35,6 @@ class BitmapRenderer {
                     }
                 }
                 ShapeType.CIRCLE -> {
-                    // interpret as: first point = center, last point = edge
                     if (s.points.size >= 2) {
                         val c = s.points.first()
                         val e = s.points.last()
@@ -44,7 +43,6 @@ class BitmapRenderer {
                     }
                 }
                 ShapeType.RECT -> {
-                    // interpret as: first point = top-left, last point = bottom-right (any drag)
                     if (s.points.size >= 2) {
                         val p0 = s.points.first()
                         val p1 = s.points.last()
@@ -57,7 +55,7 @@ class BitmapRenderer {
                     }
                 }
                 else -> {
-                    // no-op or extend for more shapes
+                    // no-op for future
                 }
             }
         }

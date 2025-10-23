@@ -73,19 +73,29 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.navigation.compose.rememberNavController
-import com.example.paintify.navigation.AppNavHost     // <-- make sure this import exists
+import com.example.paintify.Navigation.AppNavHost
 import com.example.paintify.ui.theme.PaintifyTheme
 
+/**
+ * MainActivity - the main launcher activity for Paintify.
+ *
+ * Responsible for:
+ *  - Enabling edge-to-edge content layout.
+ *  - Setting the global Compose theme.
+ *  - Initializing the navigation controller.
+ *  - Displaying the app’s primary navigation host.
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Enables drawing behind system bars
         enableEdgeToEdge()
+
         setContent {
             PaintifyTheme {
-                val navController = rememberNavController()
-                AppNavHost(navController = navController) // default start is "splash"
-                // For testing, you can force home:
-                 AppNavHost(navController = navController, startDestination = "home")
+                val myNavControl = rememberNavController()
+                AppNavHost(navController = myNavControl)
             }
         }
     }

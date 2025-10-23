@@ -1,4 +1,3 @@
-// DrawingDao.kt
 package com.example.paintify.data
 
 import androidx.room.*

@@ -1,5 +1,5 @@
 package com.example.paintify.data
-// AppDatabase.kt
+
 import androidx.room.Database
 import androidx.room.RoomDatabase
 

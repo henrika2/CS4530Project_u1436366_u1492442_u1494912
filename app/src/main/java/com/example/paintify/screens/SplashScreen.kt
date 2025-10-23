@@ -134,7 +134,7 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun SplashScreen(
-    logoResId: Int?,                // <- nullable now
+    logoResId: Int?,
     modifier: Modifier = Modifier,
     background: Color = MaterialTheme.colorScheme.background,
     holdMillis: Long = 800,
