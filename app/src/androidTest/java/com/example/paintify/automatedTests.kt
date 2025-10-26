@@ -18,15 +18,13 @@ package com.example.paintify
 import android.content.Context
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
-import androidx.navigation.NavigatorProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.compose.DialogNavigator
 import androidx.navigation.compose.rememberNavController
@@ -37,14 +35,16 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.example.paintify.Navigation.AppNavHost
 import com.example.paintify.models.ShapeType
+import com.example.paintify.models.ToolType
 import com.example.paintify.screens.DrawingViewModel
 import com.example.paintify.screens.DrawScreen
-import com.example.paintify.screens.SplashScreen
+import com.example.paintify.screens.DrawingViewModelProvider
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.*
 import org.junit.Rule
-import io.mockk.mockk
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @RunWith(AndroidJUnit4::class)
 class automatedTests {
@@ -60,8 +60,12 @@ class automatedTests {
 
     @Test
     fun SetBrushandSetColor_updatesViewModel() {
-        val repo = mockk<com.example.paintify.data.DrawingRepository>(relaxed = true)
-        val vm = com.example.paintify.screens.DrawingViewModel(repo)
+        lateinit var vm: DrawingViewModel
+
+        rule.setContent {
+            vm = viewModel(factory = DrawingViewModelProvider.Factory)
+            DrawScreen(navController = rememberNavController(), vm = vm)
+        }
 
         vm.setBrush(ShapeType.LINE)
         vm.setColor(Color.Red)
@@ -72,8 +76,12 @@ class automatedTests {
 
     @Test
     fun DragMove_updatesViewModel() {
-        val repo = mockk<com.example.paintify.data.DrawingRepository>(relaxed = true)
-        val vm = com.example.paintify.screens.DrawingViewModel(repo)
+        lateinit var vm: DrawingViewModel
+
+        rule.setContent {
+            vm = viewModel(factory = DrawingViewModelProvider.Factory)
+            DrawScreen(navController = rememberNavController(), vm = vm)
+        }
 
         vm.setBrush(ShapeType.CIRCLE)
         vm.setColor(Color.Black)
@@ -94,8 +102,12 @@ class automatedTests {
 
     @Test
     fun PenWidth() {
-        val repo = mockk<com.example.paintify.data.DrawingRepository>(relaxed = true)
-        val vm = com.example.paintify.screens.DrawingViewModel(repo)
+        lateinit var vm: DrawingViewModel
+
+        rule.setContent {
+            vm = viewModel(factory = DrawingViewModelProvider.Factory)
+            DrawScreen(navController = rememberNavController(), vm = vm)
+        }
 
         vm.setWidthPx(-5f)
         assertEquals(1f, vm.penWidth.value, 0.0f)
@@ -128,37 +140,13 @@ class automatedTests {
 
     }
 
-    @Test
-    fun can_switch_brush_and_draw_on_canvas() {
-        lateinit var vm: DrawingViewModel
-
-        rule.setContent {
-            vm = androidx.lifecycle.viewmodel.compose.viewModel()
-            DrawScreen(navController = rememberNavController(), vm = vm)
-        }
-
-        rule.onNodeWithText("LINE").assertIsEnabled().performClick()
-
-        val canvas = rule.onNodeWithTag("drawingCanvas")
-        canvas.assertExists()
-        canvas.performTouchInput {
-            val c = center
-            down(c)
-            moveTo(Offset(c.x + 100f, c.y + 50f))
-            up()
-        }
-
-        rule.runOnIdle {
-            assert(vm.strokes.value.isNotEmpty())
-        }
-    }
 
     @Test
     fun slider_changes_pen_width() {
         lateinit var vm: DrawingViewModel
 
         rule.setContent {
-            vm = androidx.lifecycle.viewmodel.compose.viewModel()
+            vm = viewModel(factory = DrawingViewModelProvider.Factory)
             DrawScreen(navController = rememberNavController(), vm = vm)
         }
 
@@ -168,7 +156,7 @@ class automatedTests {
         slider.performTouchInput {
             val c = center
             down(c)
-            moveTo(androidx.compose.ui.geometry.Offset(right - 5f, c.y))
+            moveTo(Offset(right - 5f, c.y))
             up()
         }
 
@@ -178,22 +166,185 @@ class automatedTests {
     }
 
     @Test
-    fun color_buttons_change_selected_color() {
+    fun color_picker_sets_color_and_eraser_toggle_switches_tool() {
         lateinit var vm: DrawingViewModel
 
         rule.setContent {
-            vm = androidx.lifecycle.viewmodel.compose.viewModel()
+            vm = viewModel(factory = DrawingViewModelProvider.Factory)
             DrawScreen(navController = rememberNavController(), vm = vm)
         }
 
-        rule.onNodeWithText("RED").performClick()
-        rule.runOnIdle { assert(vm.selectedColor.value == androidx.compose.ui.graphics.Color.Red) }
+        // Open color picker
+        rule.onNodeWithTag("openColorPicker").assertExists().performClick()
 
-        rule.onNodeWithText("BLUE").performClick()
-        rule.runOnIdle { assert(vm.selectedColor.value == androidx.compose.ui.graphics.Color.Blue) }
+        // Push RED to max (255)
+        val red = rule.onNodeWithTag("redSlider")
+        red.assertExists()
+        red.performTouchInput {
+            val c = center
+            down(c)
+            moveTo(Offset(right - 5f, c.y))
+            up()
+        }
 
-        rule.onNodeWithText("ERASER").performClick()
-        rule.runOnIdle { assert(vm.selectedColor.value == androidx.compose.ui.graphics.Color.White) }
+        // Set GREEN and BLUE near 0
+        rule.onNodeWithTag("greenSlider").performTouchInput {
+            val c = center
+            down(c)
+            moveTo(Offset(left + 5f, c.y))
+            up()
+        }
+        rule.onNodeWithTag("blueSlider").performTouchInput {
+            val c = center
+            down(c)
+            moveTo(Offset(left + 5f, c.y))
+            up()
+        }
+
+        // Confirm
+        rule.onNodeWithText("Select").performClick()
+
+        // Verify VM color ~ pure red
+        rule.runOnIdle {
+            val c = vm.selectedColor.value
+            fun ch(x: Float) = (x * 255f).roundToInt()
+            val r = ch(c.red)
+            val g = ch(c.green)
+            val b = ch(c.blue)
+
+            // allow ±2 for rounding
+            assert(r in 240..255) { "Expected R≈255, got $r" }
+            assert(g in 0..10)     { "Expected G≈0, got $g" }
+            assert(b in 0..10)     { "Expected B≈0, got $b" }
+        }
+        // Toggle eraser ON
+        rule.onNodeWithTag("eraserToggle").assertExists().performClick()
+        rule.runOnIdle {
+            assert(vm.toolType.value == ToolType.ERASER)
+            // also white selected by design
+            val c = vm.selectedColor.value
+            assert(abs(c.red - 1f) < 0.01f && abs(c.green - 1f) < 0.01f && abs(c.blue - 1f) < 0.01f)
+        }
+
+        // Toggle eraser OFF (back to pen)
+        rule.onNodeWithTag("eraserToggle").performClick()
+        rule.runOnIdle {
+            assert(vm.toolType.value == ToolType.PEN)
+        }
+    }
+
+    @Test
+    fun rgb_picker_color_applies_to_new_stroke() {
+        lateinit var vm: DrawingViewModel
+        rule.setContent {
+            vm = viewModel(factory = DrawingViewModelProvider.Factory)
+            DrawScreen(navController = rememberNavController(), vm = vm)
+        }
+
+        // Open color picker and set to purple-ish: R=200,G=0,B=200
+        rule.onNodeWithTag("openColorPicker").performClick()
+
+        fun moveSliderToPercent(tag: String, pct: Float) {
+            rule.onNodeWithTag(tag).performTouchInput {
+                val c = center
+                val x = left + (right - left) * pct
+                down(c)
+                moveTo(Offset(x, c.y))
+                up()
+            }
+        }
+
+        moveSliderToPercent("redSlider", 200f / 255f)
+        moveSliderToPercent("greenSlider", 0f)
+        moveSliderToPercent("blueSlider", 200f / 255f)
+        rule.onNodeWithText("Select").performClick()
+
+        // Draw a stroke
+        rule.onNodeWithTag("drawingCanvas").performTouchInput {
+            val c = center
+            down(c); moveTo(Offset(c.x + 80f, c.y + 30f)); up()
+        }
+
+        // Verify last stroke color ~ (200,0,200)
+        rule.runOnIdle {
+            val last = vm.strokes.value.last()
+            assert(abs(last.color.red - 200f / 255f) < 0.03f)
+            assert(last.color.green < 0.03f)
+            assert(abs(last.color.blue - 200f / 255f) < 0.03f)
+        }
+    }
+
+
+    @Test
+    fun pen_width_slider_changes_stroke_width() {
+        lateinit var vm: DrawingViewModel
+        rule.setContent {
+            vm = viewModel(factory = DrawingViewModelProvider.Factory)
+            DrawScreen(navController = rememberNavController(), vm = vm)
+        }
+
+        // Baseline stroke at default width
+        rule.onNodeWithTag("drawingCanvas").performTouchInput {
+            val c = center; down(c); moveTo(Offset(c.x + 50f, c.y)); up()
+        }
+        var baseWidth = 0f
+        rule.runOnIdle { baseWidth = vm.strokes.value.last().widthPx }
+
+        // Slide width near max
+        rule.onNodeWithTag("penWidthSlider").performTouchInput {
+            val c = center
+            down(c); moveTo(Offset(right - 5f, c.y)); up()
+        }
+
+        // Draw again
+        rule.onNodeWithTag("drawingCanvas").performTouchInput {
+            val c = center; down(c); moveTo(Offset(c.x + 50f, c.y + 10f)); up()
+        }
+
+        // Width should increase
+        rule.runOnIdle {
+            val newWidth = vm.strokes.value.last().widthPx
+            assert(newWidth > baseWidth)
+        }
+    }
+
+    @Test
+    fun eraser_toggle_draws_white_strokes() {
+        lateinit var vm: DrawingViewModel
+        rule.setContent {
+            vm = viewModel(factory = DrawingViewModelProvider.Factory)
+            DrawScreen(navController = rememberNavController(), vm = vm)
+        }
+
+        // Ensure pen on a colored stroke first
+        rule.onNodeWithTag("openColorPicker").performClick()
+        // set a non-white color (e.g., green mid)
+        rule.onNodeWithTag("greenSlider").performTouchInput {
+            val c = center; down(c); moveTo(Offset((left + right) / 2f, c.y)); up()
+        }
+        rule.onNodeWithText("Select").performClick()
+
+        rule.onNodeWithTag("drawingCanvas").performTouchInput {
+            val c = center; down(c); moveTo(Offset(c.x + 60f, c.y)); up()
+        }
+        rule.runOnIdle {
+            val c = vm.strokes.value.last().color
+            assert(!(abs(c.red - 1f) < 0.01f && abs(c.green - 1f) < 0.01f && abs(c.blue - 1f) < 0.01f))
+        }
+
+        // Turn eraser on
+        rule.onNodeWithTag("eraserToggle").performClick()
+        rule.runOnIdle { assert(vm.toolType.value == ToolType.ERASER) }
+
+        // Draw eraser stroke
+        rule.onNodeWithTag("drawingCanvas").performTouchInput {
+            val c = center; down(c); moveTo(Offset(c.x + 60f, c.y + 15f)); up()
+        }
+        rule.runOnIdle {
+            val c = vm.strokes.value.last().color
+            // white ≈ (1,1,1)
+            assert(abs(c.red - 1f) < 0.02f && abs(c.green - 1f) < 0.02f && abs(c.blue - 1f) < 0.02f)
+        }
     }
 }
 

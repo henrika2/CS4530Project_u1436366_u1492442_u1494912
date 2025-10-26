@@ -357,7 +357,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.material.icons.filled.AutoFixOff   // <— eraser icon
-
+import androidx.compose.ui.platform.testTag
 
 
 /**
@@ -523,10 +523,12 @@ fun DrawScreen(
                 ),
                 title = { Text("Canvas") },
                 actions = {
-                    IconButton(onClick = { showColorPicker = true }) {
+                    IconButton(onClick = { showColorPicker = true },
+                        modifier = Modifier.testTag("openColorPicker")) {
                         Icon(Icons.Default.ColorLens, contentDescription = "Color")
                     }
-                    IconButton(onClick = { shapeMenuExpanded = true }) {
+                    IconButton(onClick = { shapeMenuExpanded = true },
+                        modifier = Modifier.testTag("openBrushMenu")) {
                         Icon(Icons.Default.Brush, contentDescription = "Brush shape")
                     }
                     DropdownMenu(
@@ -551,7 +553,8 @@ fun DrawScreen(
                         checked = (toolType == ToolType.ERASER),
                         onCheckedChange = { isOn ->
                             if (isOn) vm.setEraser() else vm.setPen()
-                        }
+                        },
+                        modifier = Modifier.testTag("eraserToggle")
                     ) {
                         // Use a recognizable "eraser" looking icon; AutoFixOff works well as an eraser metaphor
                         Icon(
@@ -595,7 +598,8 @@ fun DrawScreen(
                         Slider(
                             value = penWidth,
                             onValueChange = vm::setWidthPx,
-                            valueRange = 1f..64f
+                            valueRange = 1f..64f,
+                            modifier = Modifier.testTag("penWidthSlider")
                         )
                     }
                 }
@@ -620,7 +624,7 @@ fun DrawScreen(
                     onStart = vm::onDragStart,
                     onMove = vm::onDragMove,
                     onEnd = vm::onDragEnd,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize().testTag("drawingCanvas")
                 )
             }
         }
@@ -661,9 +665,10 @@ private fun ColorSlider(
     label: String,
     value: Float,
     onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>
+    valueRange: ClosedFloatingPointRange<Float>,
+    modifier: Modifier = Modifier
 ) {
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth().then(modifier)) {
         Text("$label: ${value.toInt()}")
         Slider(value = value, onValueChange = onValueChange, valueRange = valueRange)
     }
@@ -710,9 +715,9 @@ fun ColorPickerDialogRGB(
                 }
 
                 // RGB sliders
-                ColorSlider("RED", r, { r = it }, 0f..255f)
-                ColorSlider("GREEN", g, { g = it }, 0f..255f)
-                ColorSlider("BLUE", b, { b = it }, 0f..255f)
+                ColorSlider("RED", r, { r = it }, 0f..255f, modifier = Modifier.testTag("redSlider"))
+                ColorSlider("GREEN", g, { g = it }, 0f..255f, modifier = Modifier.testTag("greenSlider"))
+                ColorSlider("BLUE", b, { b = it }, 0f..255f, modifier = Modifier.testTag("blueSlider"))
             }
         }
     )
