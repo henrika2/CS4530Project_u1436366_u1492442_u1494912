@@ -598,12 +598,6 @@ fun DrawScreen(
                             valueRange = 1f..64f
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ColorSwatch(Color.Black) { vm.setColor(Color.Black) }
-                        ColorSwatch(Color.Red) { vm.setColor(Color.Red) }
-                        ColorSwatch(Color.Blue) { vm.setColor(Color.Blue) }
-                        ColorSwatch(Color.White) { vm.setColor(Color.White) } // eraser
-                    }
                 }
             }
         }
@@ -633,7 +627,7 @@ fun DrawScreen(
     }
 
     if (showColorPicker) {
-        SimpleColorPickerDialog(
+        ColorPickerDialogRGB(
             initial = selectedColor,
             onPick = { vm.setColor(it); showColorPicker = false },
             onDismiss = { showColorPicker = false }
@@ -653,40 +647,72 @@ object DrawingViewModelProvider {
     }
 }
 
-// Helpers
 
 @Composable
-private fun ColorSwatch(color: Color, onPick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(28.dp)
-            .clip(CircleShape)
-            .background(color)
-            .clickable { onPick() }
-    )
+private fun ColorPreview(color: Color, modifier: Modifier = Modifier) {
+    ElevatedCard(modifier = modifier.size(56.dp)) {
+        Box(Modifier.fillMaxSize().background(color))
+    }
 }
 
+
 @Composable
-private fun SimpleColorPickerDialog(
-    initial: Color,
-    onPick: (Color) -> Unit,
-    onDismiss: () -> Unit
+private fun ColorSlider(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>
 ) {
-    val presets = listOf(
-        Color.Black, Color.DarkGray, Color.Gray, Color.Red, Color.Green,
-        Color.Blue, Color.Magenta, Color.Cyan, Color.Yellow, Color.White
-    )
+    Column(Modifier.fillMaxWidth()) {
+        Text("$label: ${value.toInt()}")
+        Slider(value = value, onValueChange = onValueChange, valueRange = valueRange)
+    }
+}
+
+
+
+@Composable
+fun ColorPickerDialogRGB(
+    initial: Color,
+    onDismiss: () -> Unit,
+    onPick: (Color) -> Unit
+) {
+    // Convert initial color (0–1 floats) to 0–255 ints
+    var r by remember { mutableFloatStateOf(initial.red * 255f) }
+    var g by remember { mutableFloatStateOf(initial.green * 255f) }
+    var b by remember { mutableFloatStateOf(initial.blue * 255f) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = {},
-        title = { Text("Pick a color") },
+        confirmButton = {
+            TextButton(onClick = { onPick(Color(r / 255f, g / 255f, b / 255f)) }) {
+                Text("Select")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+        title = { Text("Pick a Color (RGB)") },
         text = {
-            Row(modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly) {
-                presets.forEach { c ->
-                    ColorSwatch(c) { onPick(c) }
-                    Spacer(Modifier.size(6.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Live preview
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ColorPreview(color = initial)
+                    Text("→")
+                    ColorPreview(color = Color(r / 255f, g / 255f, b / 255f))
                 }
+
+                // RGB sliders
+                ColorSlider("RED", r, { r = it }, 0f..255f)
+                ColorSlider("GREEN", g, { g = it }, 0f..255f)
+                ColorSlider("BLUE", b, { b = it }, 0f..255f)
             }
         }
     )

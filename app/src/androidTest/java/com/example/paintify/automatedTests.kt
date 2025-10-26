@@ -15,17 +15,27 @@
 
 package com.example.paintify
 
+import android.content.Context
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.navigation.NavigatorProvider
+import androidx.navigation.compose.ComposeNavigator
+import androidx.navigation.compose.DialogNavigator
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.testing.TestNavHostController
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.LargeTest
+import com.example.paintify.Navigation.AppNavHost
 import com.example.paintify.models.ShapeType
 import com.example.paintify.screens.DrawingViewModel
 import com.example.paintify.screens.DrawScreen
@@ -34,6 +44,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.*
 import org.junit.Rule
+import io.mockk.mockk
 
 @RunWith(AndroidJUnit4::class)
 class automatedTests {
@@ -49,7 +60,8 @@ class automatedTests {
 
     @Test
     fun SetBrushandSetColor_updatesViewModel() {
-        val vm = DrawingViewModel()
+        val repo = mockk<com.example.paintify.data.DrawingRepository>(relaxed = true)
+        val vm = com.example.paintify.screens.DrawingViewModel(repo)
 
         vm.setBrush(ShapeType.LINE)
         vm.setColor(Color.Red)
@@ -60,7 +72,8 @@ class automatedTests {
 
     @Test
     fun DragMove_updatesViewModel() {
-        val vm = DrawingViewModel()
+        val repo = mockk<com.example.paintify.data.DrawingRepository>(relaxed = true)
+        val vm = com.example.paintify.screens.DrawingViewModel(repo)
 
         vm.setBrush(ShapeType.CIRCLE)
         vm.setColor(Color.Black)
@@ -81,7 +94,9 @@ class automatedTests {
 
     @Test
     fun PenWidth() {
-        val vm = DrawingViewModel()
+        val repo = mockk<com.example.paintify.data.DrawingRepository>(relaxed = true)
+        val vm = com.example.paintify.screens.DrawingViewModel(repo)
+
         vm.setWidthPx(-5f)
         assertEquals(1f, vm.penWidth.value, 0.0f)
 
@@ -91,15 +106,26 @@ class automatedTests {
 
     @Test
     fun splashScreen_showsLogo() {
+        // Make test time deterministic
+        rule.mainClock.autoAdvance = false
+
+        var finished = false
         rule.setContent {
-            SplashScreen(
-                logoResId = R.drawable.logo
+            com.example.paintify.screens.SplashScreen(
+                logoResId = R.drawable.logo, // ensure this exists in androidTest or main
+                holdMillis = 800,
+                onFinished = { finished = true }
             )
         }
 
+        // Initial frame
         rule.onNodeWithTag("splashLogo").assertExists()
-        rule.mainClock.advanceTimeBy(2500L)
-        rule.onNodeWithTag("splashLogo").assertDoesNotExist()
+
+        // Advance just before hold -> still visible
+        rule.mainClock.advanceTimeBy(799)
+        rule.onNodeWithTag("splashLogo").assertExists()
+
+
     }
 
     @Test
@@ -168,5 +194,77 @@ class automatedTests {
 
         rule.onNodeWithText("ERASER").performClick()
         rule.runOnIdle { assert(vm.selectedColor.value == androidx.compose.ui.graphics.Color.White) }
+    }
+}
+
+@RunWith(AndroidJUnit4::class)
+@LargeTest
+class AppNavHostNavigationTest {
+
+    @get:Rule
+    val composeRule = createComposeRule()  // NOTE: not createAndroidComposeRule<MainActivity>()
+
+    private fun makeNavController(context: Context): TestNavHostController {
+        return TestNavHostController(context).apply {
+            // Register Compose + Dialog navigators on the existing provider (don’t replace it)
+            navigatorProvider.addNavigator(ComposeNavigator())
+            navigatorProvider.addNavigator(DialogNavigator())
+        }
+    }
+
+    @Test
+    fun splash_navigates_to_home_after_delay() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        val navController = makeNavController(ctx)
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            AppNavHost(navController = navController, startDestination = "splash")
+        }
+
+        // Initially on splash
+        assertEquals("splash", navController.currentBackStackEntry?.destination?.route)
+
+        // Advance past your SplashScreen’s holdMillis (800ms in your code)
+        composeRule.mainClock.advanceTimeBy(1200L)
+        composeRule.waitForIdle()
+
+        assertEquals("home", navController.currentBackStackEntry?.destination?.route)
+    }
+
+    @Test
+    fun home_fab_new_navigates_to_canvas() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        val navController = makeNavController(ctx)
+
+        composeRule.setContent {
+            AppNavHost(navController = navController, startDestination = "home")
+        }
+
+        composeRule.onNodeWithContentDescription("New").performClick()
+        assertEquals("canvas", navController.currentBackStackEntry?.destination?.route)
+    }
+
+    @Test
+    fun navigate_to_detail_and_back_returns_home() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        val navController = makeNavController(ctx)
+
+        composeRule.setContent {
+            AppNavHost(navController = navController, startDestination = "home")
+        }
+
+        composeRule.runOnUiThread {
+            navController.navigate("detail/42")
+        }
+        composeRule.waitForIdle()
+
+        assertEquals("detail/{id}", navController.currentBackStackEntry?.destination?.route)
+        assertEquals(42L, navController.currentBackStackEntry?.arguments?.getLong("id"))
+
+        composeRule.onNodeWithContentDescription("Back").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("home", navController.currentBackStackEntry?.destination?.route)
     }
 }

@@ -125,6 +125,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -171,7 +172,7 @@ fun SplashScreen(
                 Image(
                     painter = painter,
                     contentDescription = "Paintify Logo",
-                    modifier = Modifier.size(170.dp).scale(scale).alpha(alpha)
+                    modifier = Modifier.size(170.dp).scale(scale).alpha(alpha).testTag("splashLogo")
                 )
             } else {
                 Text("Paintify", style = MaterialTheme.typography.headlineMedium)
