@@ -81,7 +81,6 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Import image
                 ExtendedFloatingActionButton(
                     text = { Text("Import") },
                     icon = { Icon(Icons.Default.IosShare, contentDescription = "Import") },
@@ -116,7 +115,6 @@ fun HomeScreen(
                     items(drawings, key = { it.id }) { drawing ->
                         DrawingCard(
                             drawing = drawing,
-                            // 👇 Open editable canvas with this drawing as background
                             onOpen = { navController.navigate("canvas/${drawing.id}") },
                             onShare = {
                                 val file = File(drawing.filePath)

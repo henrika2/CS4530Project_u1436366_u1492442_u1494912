@@ -102,9 +102,6 @@ class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() 
     }
 
     fun setSelectedDrawingId(id: Long) = repository.setSelectedDrawingId(id)
-//    val currentSelectedDrawing: StateFlow<DrawingData?> = repository.allDrawings
-//        .map { list -> list.firstOrNull { it.id == currentDrawingId } }
-//        .stateIn(repository.scope, SharingStarted.WhileSubscribed(5000), null)
 
     // Stores the strokes currently displayed on the canvas
     private val _strokes = MutableStateFlow<List<Stroke>>(emptyList())
@@ -311,7 +308,6 @@ fun DrawScreen(
                             if (isOn) vm.setEraser() else vm.setPen()
                         }
                     ) {
-                        // Use a recognizable "eraser" looking icon; AutoFixOff works well as an eraser metaphor
                         Icon(
                             imageVector = Icons.Default.AutoFixOff,
                             contentDescription = if (toolType == ToolType.ERASER) "Eraser on" else "Eraser off",
@@ -319,20 +315,6 @@ fun DrawScreen(
                         )
                     }
 
-
-//                    IconButton(
-//                        onClick = {
-//                            if (canvasSize.width > 0 && canvasSize.height > 0) {
-//                                vm.saveCurrent(
-//                                    name = drawingName,
-//                                    widthPx = canvasSize.width,
-//                                    heightPx = canvasSize.height
-//                                )
-//                            }
-//                        }
-//                    ) {
-//                        Icon(Icons.Default.Save, contentDescription = "Save")
-//                    }
                     val context = LocalContext.current
                     var showSaveDialog by remember { mutableStateOf(false) }
 
@@ -340,7 +322,6 @@ fun DrawScreen(
                         Icon(Icons.Default.Save, contentDescription = "Save")
                     }
 
-// 🔽 Save name dialog
                     if (showSaveDialog) {
                         var tempName by remember { mutableStateOf("") }
 
@@ -369,10 +350,8 @@ fun DrawScreen(
                                             heightPx = canvasSize.height
                                         )
 
-                                        // ✅ Toast confirmation
                                         Toast.makeText(context, "Saved as \"$saveName\"", Toast.LENGTH_SHORT).show()
 
-                                        // ✅ Go back to home after saving
                                         navController.popBackStack("home", inclusive = false)
                                     }
 
@@ -649,16 +628,15 @@ fun DrawScreenWithBackground(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .background(Color.White)           // fallback if no bitmap
+                    .background(Color.White)
                     .onSizeChanged { canvasSize = it }
             ) {
-                // 1) Background image from disk
                 bgBitmap?.let { img ->
                     Image(
                         bitmap = img,
                         contentDescription = "Background",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.FillBounds // fills the canvas area
+                        contentScale = ContentScale.FillBounds
                     )
                 }
 
