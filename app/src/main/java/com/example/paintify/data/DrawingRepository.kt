@@ -10,6 +10,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Rect
+import androidx.compose.ui.graphics.Color
+
 
 class DrawingRepository(
     private val appContext: Context,
@@ -68,6 +74,67 @@ class DrawingRepository(
             }
         }
     }
+    fun saveDrawingMerged(
+        name: String,
+        backgroundFilePath: String,
+        strokes: List<Stroke>,
+        canvasWidthPx: Int,
+        canvasHeightPx: Int
+    ) {
+        if (canvasWidthPx <= 0 || canvasHeightPx <= 0) return
+
+        scope.launch {
+            try {
+                // 1) Final output bitmap (this is what we will save)
+                val outBitmap = Bitmap.createBitmap(
+                    canvasWidthPx, canvasHeightPx, Bitmap.Config.ARGB_8888
+                )
+                val outCanvas = Canvas(outBitmap)
+
+                // 2) Draw the background scaled to the canvas bounds
+                val bg = BitmapFactory.decodeFile(backgroundFilePath)
+                if (bg != null) {
+                    val src = Rect(0, 0, bg.width, bg.height)
+                    val dst = Rect(0, 0, canvasWidthPx, canvasHeightPx)
+                    outCanvas.drawBitmap(bg, src, dst, null)
+                } else {
+                    Log.w("DrawingRepo", "Background not found at $backgroundFilePath; saving strokes only.")
+                }
+
+                // 3) Render strokes onto a transparent bitmap, then draw over background
+                if (strokes.isNotEmpty()) {
+                    val renderer = BitmapRenderer()
+                    // IMPORTANT: Transparent background so don’t cover the bg image
+                    val strokesBitmap = renderer.render(
+                        strokes = strokes,
+                        widthPx = canvasWidthPx,
+                        heightPx = canvasHeightPx,
+                        background = Color.Transparent
+                    )
+                    outCanvas.drawBitmap(strokesBitmap, 0f, 0f, null)
+                }
+
+                // 4) Save merged bitmap as NEW file + insert new DB row
+                val fileStore = FileStore()
+                val file = fileStore.saveBitmapPng(
+                    appContext,
+                    outBitmap,
+                    name.ifBlank { "Edited" }
+                )
+
+                val entity = DrawingData(
+                    name = name.ifBlank { "Edited" },
+                    filePath = file.absolutePath,
+                    widthPx = canvasWidthPx,
+                    heightPx = canvasHeightPx
+                )
+                dao.insert(entity)
+                Log.d("DrawingRepo", "Saved merged drawing: ${file.absolutePath}")
+            } catch (t: Throwable) {
+                Log.e("DrawingRepo", "Failed to save merged drawing", t)
+            }
+        }
+    }
 
     /** Update only metadata (e.g., rename). */
     fun updateDrawing(entity: DrawingData) {
@@ -116,4 +183,6 @@ class DrawingRepository(
             }
         }
     }
+
+
 }

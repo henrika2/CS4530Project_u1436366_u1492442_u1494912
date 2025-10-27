@@ -1,3 +1,5 @@
+package com.example.paintify.screens
+
 import android.content.Intent
 import android.net.Uri
 import android.graphics.BitmapFactory
@@ -34,7 +36,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import java.io.File
-
 
 class HomeViewModel(
     private val repo: DrawingRepository
@@ -74,11 +75,7 @@ fun HomeScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Paintify — Saved Drawings") }
-            )
-        },
+        topBar = { TopAppBar(title = { Text("Paintify — Saved Drawings") }) },
         floatingActionButton = {
             Row(
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -94,7 +91,7 @@ fun HomeScreen(
                         )
                     }
                 )
-                // New drawing
+                // New drawing (blank canvas)
                 FloatingActionButton(onClick = { navController.navigate("canvas") }) {
                     Icon(Icons.Default.Add, contentDescription = "New")
                 }
@@ -116,38 +113,30 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-//                    items(drawings, key = { it.id }) { drawing ->
-//                        DrawingCard(
-//                            drawing = drawing,
-//                            onOpen = { /* future: open details */ },
-//                            onShare = {
-//                                val file = File(drawing.filePath)
-//                                if (file.exists()) {
-//                                    val uri = FileProvider.getUriForFile(
-//                                        ctx, "${ctx.packageName}.fileprovider", file
-//                                    )
-//                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-//                                        type = "image/png"
-//                                        putExtra(Intent.EXTRA_STREAM, uri)
-//                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-//                                    }
-//                                    ctx.startActivity(
-//                                        Intent.createChooser(sendIntent, "Share drawing")
-//                                    )
-//                                }
-//                            },
-//                            onDelete = { vm.delete(drawing) }
-//                        )
-//                    }
                     items(drawings, key = { it.id }) { drawing ->
                         DrawingCard(
                             drawing = drawing,
-                            onOpen = { navController.navigate("detail/${drawing.id}") },
-                            onShare = { /* unchanged */ },
+                            // 👇 Open editable canvas with this drawing as background
+                            onOpen = { navController.navigate("canvas/${drawing.id}") },
+                            onShare = {
+                                val file = File(drawing.filePath)
+                                if (file.exists()) {
+                                    val uri = FileProvider.getUriForFile(
+                                        ctx, "${ctx.packageName}.fileprovider", file
+                                    )
+                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "image/png"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    ctx.startActivity(
+                                        Intent.createChooser(sendIntent, "Share drawing")
+                                    )
+                                }
+                            },
                             onDelete = { vm.delete(drawing) }
                         )
                     }
-
                 }
             }
         }

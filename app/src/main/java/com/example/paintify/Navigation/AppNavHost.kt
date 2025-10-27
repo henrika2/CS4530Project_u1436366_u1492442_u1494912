@@ -1,18 +1,18 @@
 package com.example.paintify.Navigation
 
-import HomeScreen
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.paintify.R
 import com.example.paintify.screens.DrawScreen
-//import com.example.paintify.screens.HomeScreen
-//import com.example.paintify.screens.HomeViewModelProvider
+import com.example.paintify.screens.HomeScreen
+import com.example.paintify.screens.HomeViewModelProvider
 import com.example.paintify.screens.SplashScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.paintify.screens.DetailScreen
+import com.example.paintify.screens.DrawScreenWithBackground
 
 
 @Composable
@@ -50,12 +50,17 @@ fun AppNavHost(
             DrawScreen(navController)
         }
 
+
         composable(
-            route = "detail/{id}",
+            route = "canvas/{id}",
             arguments = listOf(navArgument("id") { type = NavType.LongType })
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getLong("id") ?: 0L
-            DetailScreen(navController = navController, drawingId = id)
+            DrawScreenWithBackground(
+                navController = navController,
+                drawingId = id
+            )
         }
+
     }
 }

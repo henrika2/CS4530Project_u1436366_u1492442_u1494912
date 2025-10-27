@@ -357,14 +357,54 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.material.icons.filled.AutoFixOff   // <— eraser icon
-import androidx.compose.ui.platform.testTag
+import com.example.paintify.data.DrawingData
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 
+import java.io.File
 /**
  * ViewModel class responsible for managing all drawing-related states
  * such as brush type, color, pen width, and drawn strokes.
  */
 class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() {
+    val selectedDrawing: StateFlow<DrawingData?> =
+        repository.selectedDrawing.stateIn(
+            repository.scope,
+            SharingStarted.WhileSubscribed(5000),
+            null
+        )
+
+    fun saveCurrentMerged(name: String, widthPx: Int, heightPx: Int) {
+        val strokesNow = strokes.value
+        val bgPath = selectedDrawing.value?.filePath
+        if (!bgPath.isNullOrBlank()) {
+            repository.saveDrawingMerged(
+                name = name,
+                backgroundFilePath = bgPath,
+                strokes = strokesNow,
+                canvasWidthPx = widthPx,
+                canvasHeightPx = heightPx
+            )
+        } else {
+            repository.saveDrawing(
+                name = name,
+                strokes = strokesNow,
+                canvasWidthPx = widthPx,
+                canvasHeightPx = heightPx
+            )
+        }
+    }
+
+    fun setSelectedDrawingId(id: Long) = repository.setSelectedDrawingId(id)
+//    val currentSelectedDrawing: StateFlow<DrawingData?> = repository.allDrawings
+//        .map { list -> list.firstOrNull { it.id == currentDrawingId } }
+//        .stateIn(repository.scope, SharingStarted.WhileSubscribed(5000), null)
 
     // Stores the strokes currently displayed on the canvas
     private val _strokes = MutableStateFlow<List<Stroke>>(emptyList())
@@ -489,6 +529,10 @@ class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() 
             canvasHeightPx = heightPx
         )
     }
+
+    fun setSelectedDrawing(drawingId: Long){
+        repository.setSelectedDrawingId(drawingId)
+    }
 }
 
 /**
@@ -499,15 +543,18 @@ class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() 
 @Composable
 fun DrawScreen(
     navController: NavHostController,
-    vm: DrawingViewModel = viewModel(factory = DrawingViewModelProvider.Factory)
+    vm: DrawingViewModel = viewModel(factory = DrawingViewModelProvider.Factory),
+    drawingId:Long = 0
 ) {
+    if (drawingId.toInt() != 0){
+        vm.setSelectedDrawing(drawingId)
+    }
     val ctx = LocalContext.current
     val strokes by vm.strokes.collectAsState()
     val selectedBrush by vm.selectedBrush.collectAsState()
     val selectedColor by vm.selectedColor.collectAsState()
     val penWidth by vm.penWidth.collectAsState()
     val toolType by vm.toolType.collectAsState()
-
 
     var canvasSize by remember { mutableStateOf(IntSize(0, 0)) }
     var shapeMenuExpanded by remember { mutableStateOf(false) }
@@ -523,12 +570,10 @@ fun DrawScreen(
                 ),
                 title = { Text("Canvas") },
                 actions = {
-                    IconButton(onClick = { showColorPicker = true },
-                        modifier = Modifier.testTag("openColorPicker")) {
+                    IconButton(onClick = { showColorPicker = true }) {
                         Icon(Icons.Default.ColorLens, contentDescription = "Color")
                     }
-                    IconButton(onClick = { shapeMenuExpanded = true },
-                        modifier = Modifier.testTag("openBrushMenu")) {
+                    IconButton(onClick = { shapeMenuExpanded = true }) {
                         Icon(Icons.Default.Brush, contentDescription = "Brush shape")
                     }
                     DropdownMenu(
@@ -553,8 +598,7 @@ fun DrawScreen(
                         checked = (toolType == ToolType.ERASER),
                         onCheckedChange = { isOn ->
                             if (isOn) vm.setEraser() else vm.setPen()
-                        },
-                        modifier = Modifier.testTag("eraserToggle")
+                        }
                     ) {
                         // Use a recognizable "eraser" looking icon; AutoFixOff works well as an eraser metaphor
                         Icon(
@@ -598,8 +642,7 @@ fun DrawScreen(
                         Slider(
                             value = penWidth,
                             onValueChange = vm::setWidthPx,
-                            valueRange = 1f..64f,
-                            modifier = Modifier.testTag("penWidthSlider")
+                            valueRange = 1f..64f
                         )
                     }
                 }
@@ -624,7 +667,7 @@ fun DrawScreen(
                     onStart = vm::onDragStart,
                     onMove = vm::onDragMove,
                     onEnd = vm::onDragEnd,
-                    modifier = Modifier.fillMaxSize().testTag("drawingCanvas")
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         }
@@ -665,10 +708,9 @@ private fun ColorSlider(
     label: String,
     value: Float,
     onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>,
-    modifier: Modifier = Modifier
+    valueRange: ClosedFloatingPointRange<Float>
 ) {
-    Column(Modifier.fillMaxWidth().then(modifier)) {
+    Column(Modifier.fillMaxWidth()) {
         Text("$label: ${value.toInt()}")
         Slider(value = value, onValueChange = onValueChange, valueRange = valueRange)
     }
@@ -715,10 +757,161 @@ fun ColorPickerDialogRGB(
                 }
 
                 // RGB sliders
-                ColorSlider("RED", r, { r = it }, 0f..255f, modifier = Modifier.testTag("redSlider"))
-                ColorSlider("GREEN", g, { g = it }, 0f..255f, modifier = Modifier.testTag("greenSlider"))
-                ColorSlider("BLUE", b, { b = it }, 0f..255f, modifier = Modifier.testTag("blueSlider"))
+                ColorSlider("RED", r, { r = it }, 0f..255f)
+                ColorSlider("GREEN", g, { g = it }, 0f..255f)
+                ColorSlider("BLUE", b, { b = it }, 0f..255f)
             }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DrawScreenWithBackground(
+    navController: NavHostController,
+    drawingId: Long,
+    vm: DrawingViewModel = viewModel(factory = DrawingViewModelProvider.Factory),
+) {
+    // Tell the VM which drawing we want, then collect it
+    LaunchedEffect(drawingId) { vm.setSelectedDrawingId(drawingId) }
+    val drawing by vm.selectedDrawing.collectAsState()
+
+    // Decode the bitmap once per file path (same pattern as DetailScreen)
+    val bgBitmap = remember(drawing?.filePath) {
+        drawing?.filePath?.let { path ->
+            val file = File(path)
+            if (file.exists()) BitmapFactory.decodeFile(path)?.asImageBitmap() else null
+        }
+    }
+
+    val strokes by vm.strokes.collectAsState()
+    val selectedColor by vm.selectedColor.collectAsState()
+    val penWidth by vm.penWidth.collectAsState()
+    val toolType by vm.toolType.collectAsState()
+
+    var canvasSize by remember { mutableStateOf(IntSize(0, 0)) }
+    var shapeMenuExpanded by remember { mutableStateOf(false) }
+    var showColorPicker by remember { mutableStateOf(false) }
+    var drawingName by remember { mutableStateOf(drawing?.name ?: "Edited $drawingId") }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(drawing?.name ?: "Edit Drawing") },
+                actions = {
+                    IconButton(onClick = { showColorPicker = true }) {
+                        Icon(Icons.Default.ColorLens, contentDescription = "Color")
+                    }
+                    IconButton(onClick = { shapeMenuExpanded = true }) {
+                        Icon(Icons.Default.Brush, contentDescription = "Brush shape")
+                    }
+                    DropdownMenu(
+                        expanded = shapeMenuExpanded,
+                        onDismissRequest = { shapeMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Line") },
+                            onClick = { vm.setBrush(ShapeType.LINE); shapeMenuExpanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Circle") },
+                            onClick = { vm.setBrush(ShapeType.CIRCLE); shapeMenuExpanded = false }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rectangle") },
+                            onClick = { vm.setBrush(ShapeType.RECT); shapeMenuExpanded = false }
+                        )
+                    }
+
+                    IconToggleButton(
+                        checked = (toolType == ToolType.ERASER),
+                        onCheckedChange = { on -> if (on) vm.setEraser() else vm.setPen() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoFixOff,
+                            contentDescription = if (toolType == ToolType.ERASER) "Eraser on" else "Eraser off"
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            if (canvasSize.width > 0 && canvasSize.height > 0) {
+                                vm.saveCurrentMerged(
+                                    name = drawingName,
+                                    widthPx = canvasSize.width,
+                                    heightPx = canvasSize.height
+                                )
+                            }
+                        }
+                    ) { Icon(Icons.Default.Save, contentDescription = "Save") }
+
+                }
+            )
+        },
+        bottomBar = {
+            BottomAppBar(
+                modifier = Modifier.height(60.dp),
+                containerColor = Color(0xFFE5E5E5)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Pen width: ${penWidth.toInt()} px")
+                        Slider(
+                            value = penWidth,
+                            onValueChange = vm::setWidthPx,
+                            valueRange = 1f..64f
+                        )
+                    }
+                }
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .background(Color.White)           // fallback if no bitmap
+                    .onSizeChanged { canvasSize = it }
+            ) {
+                // 1) Background image from disk
+                bgBitmap?.let { img ->
+                    Image(
+                        bitmap = img,
+                        contentDescription = "Background",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.FillBounds // fills the canvas area
+                    )
+                }
+
+                // 2) Your drawing layer on top
+                DrawingCanvas(
+                    strokes = strokes,
+                    onStart = vm::onDragStart,
+                    onMove = vm::onDragMove,
+                    onEnd = vm::onDragEnd,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+
+    if (showColorPicker) {
+        ColorPickerDialogRGB(
+            initial = selectedColor,
+            onPick = { vm.setColor(it); showColorPicker = false },
+            onDismiss = { showColorPicker = false }
+        )
+    }
 }
