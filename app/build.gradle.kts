@@ -5,6 +5,15 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Read secrets from secrets.properties
+val secretsFile = rootProject.file("secrets.properties")
+val secretsMap = secretsFile.readLines()
+    .map { it.split("=") }
+    .associate { it[0].trim() to it[1].trim() }
+
+
+val apiKey = secretsMap["GEMINI_API_KEY"] ?: ""
+
 android {
     namespace = "com.example.paintify"
     compileSdk = 36
@@ -17,6 +26,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
     }
 
     buildTypes {
@@ -37,6 +48,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
@@ -80,7 +92,8 @@ dependencies {
 
     // Coroutines on Android (needed for viewModelScope/Dispatchers, etc.)
     implementation(libs.kotlinx.coroutines.android)
-
+    implementation(libs.google.generativeai)
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:<ver>")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:<ver>")
@@ -92,6 +105,10 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:<compose_version>")
     implementation("androidx.activity:activity-compose:1.9.3") // for Photo Picker launcher APIs
     implementation("androidx.compose.material:material-icons-extended:<compose_version>")
+
+
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.google.generativeai)
 
 
 }

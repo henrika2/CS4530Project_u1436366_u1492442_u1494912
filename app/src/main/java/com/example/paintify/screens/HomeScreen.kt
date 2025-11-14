@@ -74,6 +74,15 @@ fun HomeScreen(
         uri?.let { vm.importFromGallery(it) }
     }
 
+    val pickForAnalysis = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        uri?.let {
+            navController.navigate("analyzeImage?uri=${Uri.encode(it.toString())}")
+        }
+    }
+
+
     Scaffold(
         topBar = { TopAppBar(title = { Text("Paintify — Saved Drawings") }) },
         floatingActionButton = {
@@ -81,6 +90,18 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+
+                // Analyze Image button
+                ExtendedFloatingActionButton(
+                    text = { Text("Analyze Image") },
+                    icon = { Icon(Icons.Default.IosShare, contentDescription = "Analyze") },
+                    onClick = {
+                        pickForAnalysis.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }
+                )
+
                 ExtendedFloatingActionButton(
                     text = { Text("Import") },
                     icon = { Icon(Icons.Default.IosShare, contentDescription = "Import") },
@@ -90,6 +111,7 @@ fun HomeScreen(
                         )
                     }
                 )
+
                 // New drawing (blank canvas)
                 FloatingActionButton(onClick = { navController.navigate("canvas") }) {
                     Icon(Icons.Default.Add, contentDescription = "New")

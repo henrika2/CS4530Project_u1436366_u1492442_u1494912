@@ -1,5 +1,6 @@
 package com.example.paintify.Navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -11,6 +12,7 @@ import com.example.paintify.screens.HomeViewModelProvider
 import com.example.paintify.screens.SplashScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.example.paintify.screens.AnalysisScreen
 import com.example.paintify.screens.DetailScreen
 import com.example.paintify.screens.DrawScreenWithBackground
 
@@ -62,5 +64,20 @@ fun AppNavHost(
             )
         }
 
+        composable(
+            route = "analyzeImage?uri={uri}",
+            arguments = listOf(
+                navArgument("uri") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val uriString = backStackEntry.arguments?.getString("uri")
+            if (uriString != null) {
+                val uri = android.net.Uri.parse(uriString)
+                AnalysisScreen(
+                    navController = navController,
+                    imageUri = uri
+                )
+            }
+        }
     }
 }
