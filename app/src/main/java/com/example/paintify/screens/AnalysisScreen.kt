@@ -1,3 +1,21 @@
+/**
+Paintify - Image Analysis Screen & ViewModel
+
+Provides the UI and logic for analyzing imported images with AI.
+
+Group Members:
+Dustin
+Nolan
+Ian
+
+Description:
+This module defines the data models (DetectedLabel, DetectedObject),
+the AnalysisUiState sealed interface, and the AnalysisViewModel used
+to send an image to an AI service, parse the JSON response, and expose
+detection results as state. The AnalysisScreen composable displays the
+analyzed image with bounding boxes drawn on top and lists detected objects
+and labels with confidence scores, including loading and error states.
+ */
 package com.example.paintify.screens
 
 import android.content.Context

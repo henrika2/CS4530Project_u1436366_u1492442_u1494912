@@ -1,5 +1,21 @@
 package com.example.paintify.models
-
+/**
+ * Paintify - File Storage Utility
+ * -------------------------------
+ * Handles saving and importing image files used by the drawing features.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * The `FileStore` class provides helper functions to persist bitmaps as
+ * PNG files under the app’s external files directory and to copy images
+ * selected from the system gallery into app-managed storage. These file
+ * paths are stored alongside drawing metadata so that Paintify can later
+ * reload, display, share, or further edit saved drawings.
+ */
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri

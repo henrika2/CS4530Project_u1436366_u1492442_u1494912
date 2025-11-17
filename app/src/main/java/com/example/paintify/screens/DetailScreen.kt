@@ -1,5 +1,23 @@
 package com.example.paintify.screens
 
+/**
+ * Paintify - Detail Screen
+ * ------------------------
+ * Displays a single saved drawing with metadata and share/delete actions.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * The `DetailViewModel` exposes a single `DrawingData` entry from the
+ * repository as a StateFlow. `DetailScreen` shows the full-size bitmap,
+ * basic metadata such as pixel dimensions and save date, and provides
+ * buttons to share the image via Android's share sheet or delete it from
+ * both the database and disk using the `DrawingRepository`.
+ */
+
 import android.content.Intent
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image

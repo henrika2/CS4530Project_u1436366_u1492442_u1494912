@@ -1,5 +1,21 @@
 package com.example.paintify.models
-
+/**
+ * Paintify - Bitmap Renderer
+ * --------------------------
+ * Renders a list of strokes into a bitmap for saving or compositing.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * The `BitmapRenderer` class converts the logical stroke model into a
+ * `Bitmap` by drawing lines, circles, and rectangles onto an Android
+ * Canvas. It respects stroke color, width, and shape type, and can draw
+ * on either an opaque or transparent background, enabling both standalone
+ * drawing exports and layered compositing over imported images.
+ */
 import android.graphics.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
