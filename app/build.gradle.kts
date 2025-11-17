@@ -100,15 +100,21 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:<ver>")
     implementation("androidx.compose.material3:material3:<ver>")
 
-    implementation("androidx.navigation:navigation-compose:2.7.7") // or your latest
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
     implementation("androidx.compose.material:material-icons-extended:<compose_version>")
-    implementation("androidx.activity:activity-compose:1.9.3") // for Photo Picker launcher APIs
-    implementation("androidx.compose.material:material-icons-extended:<compose_version>")
+    implementation("androidx.activity:activity-compose:1.9.3")
 
+    androidTestImplementation("androidx.test:core-ktx:1.5.0")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test:rules:1.5.0")
+
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:<compose_version>")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:<compose_version>")
 
     implementation(libs.androidx.navigation.compose)
     implementation(libs.google.generativeai)
+    testImplementation(kotlin("test"))
 
 
 }

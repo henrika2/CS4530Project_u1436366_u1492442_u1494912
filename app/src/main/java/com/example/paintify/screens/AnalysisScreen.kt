@@ -42,7 +42,6 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 
-// ----------------- Data models for detection -----------------
 
 data class DetectedLabel(
     val name: String,
@@ -53,14 +52,13 @@ data class DetectedObject(
     val name: String,
     val category: String?,
     val confidence: Float,
-    // normalized [0,1] coords
     val xMin: Float,
     val yMin: Float,
     val xMax: Float,
     val yMax: Float
 )
 
-sealed interface AnalysisUiState {
+ interface AnalysisUiState {
     object Idle : AnalysisUiState
     object Loading : AnalysisUiState
     data class Success(
@@ -73,7 +71,6 @@ sealed interface AnalysisUiState {
     data class Error(val message: String) : AnalysisUiState
 }
 
-// ----------------- ViewModel using Gemini -----------------
 
 class AnalysisViewModel : ViewModel() {
 
@@ -237,7 +234,6 @@ class AnalysisViewModel : ViewModel() {
 
 
 
-// ----------------- Composable Screen -----------------
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -317,10 +313,9 @@ fun AnalysisScreen(
     }
 }
 
-// ----------------- UI content: image + boxes + lists -----------------
 
 @Composable
-private fun AnalysisContent(
+internal fun AnalysisContent(
     imageUri: Uri,
     imageWidth: Int,
     imageHeight: Int,
@@ -355,8 +350,6 @@ private fun AnalysisContent(
                 val canvasWidth = size.width
                 val canvasHeight = size.height
 
-                val scaleX = canvasWidth / imageWidth
-                val scaleY = canvasHeight / imageHeight
 
                 objects.forEach { obj ->
                     val left = obj.xMin * canvasWidth
