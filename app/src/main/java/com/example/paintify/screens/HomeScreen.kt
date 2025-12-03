@@ -20,8 +20,8 @@ package com.example.paintify.screens
  */
 
 import android.content.Intent
-import android.net.Uri
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -30,7 +30,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -42,6 +41,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -50,21 +50,22 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import com.example.paintify.DrawApplication
+import com.example.paintify.cloud.CloudDrawing
+import com.example.paintify.cloud.CloudSharing
+import com.example.paintify.cloud.CloudSync
+import com.example.paintify.cloud.SharedDrawing
 import com.example.paintify.data.DrawingData
 import com.example.paintify.data.DrawingRepository
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import java.io.File
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
-import com.example.paintify.cloud.CloudSync
-import com.example.paintify.cloud.CloudDrawing
 import kotlinx.coroutines.launch
+import java.io.File
+
 
 class HomeViewModel(
     private val repo: DrawingRepository
@@ -101,12 +102,22 @@ fun HomeScreen(
     // Auth + coroutine scope
     val auth = Firebase.auth
     val user = auth.currentUser
-    val scope = rememberCoroutineScope()
 
     // Cloud drawings state
     var cloudDrawings by remember { mutableStateOf<List<CloudDrawing>>(emptyList()) }
     var isCloudLoading by remember { mutableStateOf(false) }
     var cloudError by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    //Cloud shared
+    var sharedToMe by remember { mutableStateOf<List<SharedDrawing>>(emptyList()) }
+    var sharedToMeError by remember { mutableStateOf<String?>(null) }
+    var isSharedToMeLoading by remember { mutableStateOf(false) }
+
+    var shareTargetDrawing by remember { mutableStateOf<DrawingData?>(null) }
+    var shareEmail by remember { mutableStateOf("") }
+    var shareError by remember { mutableStateOf<String?>(null) }
+    var isSharing by remember { mutableStateOf(false) }
 
     // Load from Firestore whenever the logged-in user changes
     LaunchedEffect(user?.uid) {
@@ -125,6 +136,25 @@ fun HomeScreen(
             cloudError = null
         }
     }
+
+    LaunchedEffect(user?.email) {
+        val email = user?.email
+        if (email != null) {
+            isSharedToMeLoading = true
+            try {
+                sharedToMe = CloudSharing.loadSharedToUser(email)
+                sharedToMeError = null
+            } catch (e: Exception) {
+                sharedToMeError = e.message
+            } finally {
+                isSharedToMeLoading = false
+            }
+        } else {
+            sharedToMe = emptyList()
+            sharedToMeError = null
+        }
+    }
+
 
     // Gallery picker
     val pickMedia = rememberLauncherForActivityResult(
@@ -198,20 +228,10 @@ fun HomeScreen(
                             drawing = drawing,
                             onOpen = { navController.navigate("canvas/${drawing.id}") },
                             onShare = {
-                                val file = File(drawing.filePath)
-                                if (file.exists()) {
-                                    val uri = FileProvider.getUriForFile(
-                                        ctx, "${ctx.packageName}.fileprovider", file
-                                    )
-                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "image/png"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    ctx.startActivity(
-                                        Intent.createChooser(sendIntent, "Share drawing")
-                                    )
-                                }
+                                //NEW: Cloud share
+                                shareTargetDrawing = drawing
+                                shareEmail = ""
+                                shareError = null
                             },
                             onDelete = { vm.delete(drawing) }
                         )
@@ -268,10 +288,176 @@ fun HomeScreen(
                             }
                         }
                     }
+
+                    //Could shared
+                    item {
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = "Drawings Shared With You",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+
+                    when {
+                        isSharedToMeLoading -> {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+
+                        sharedToMeError != null -> {
+                            item {
+                                Text(
+                                    text = "Error loading shared drawings: $sharedToMeError",
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        }
+
+                        sharedToMe.isEmpty() -> {
+                            item {
+                                Text(
+                                    text = "No one has shared drawings with you yet.",
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        }
+
+                        else -> {
+                            items(sharedToMe, key = { it.id }) { shared ->
+                                SharedDrawingCard(shared)
+                            }
+                        }
+                    }
+
+
+                }
+
+                if (shareTargetDrawing != null) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            shareTargetDrawing = null
+                            shareError = null
+                        },
+                        title = { Text("Share Drawing") },
+                        text = {
+                            Column {
+                                Text("Send \"${shareTargetDrawing!!.name}\" to:")
+                                Spacer(Modifier.height(8.dp))
+                                OutlinedTextField(
+                                    value = shareEmail,
+                                    onValueChange = { shareEmail = it },
+                                    label = { Text("Recipient email") },
+                                    singleLine = true
+                                )
+                                shareError?.let {
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(it, color = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(
+                                enabled = !isSharing,
+                                onClick = {
+                                    val sender = user
+                                    if (sender == null) {
+                                        shareError = "You must be logged in to share."
+                                        return@TextButton
+                                    }
+                                    if (shareEmail.isBlank()) {
+                                        shareError = "Please enter an email."
+                                        return@TextButton
+                                    }
+
+                                    val drawing = shareTargetDrawing!!
+                                    isSharing = true
+                                    shareError = null
+
+                                    scope.launch {
+                                        try {
+                                            CloudSharing.shareDrawingWithUser(
+                                                senderId = sender.uid,
+                                                receiverEmail = shareEmail.trim(),
+                                                localFilePath = drawing.filePath,
+                                                title = drawing.name
+                                            )
+                                            shareTargetDrawing = null
+                                        } catch (e: Exception) {
+                                            shareError = e.message ?: "Failed to share"
+                                        } finally {
+                                            isSharing = false
+                                        }
+                                    }
+                                }
+                            ) {
+                                Text(if (isSharing) "Sharing..." else "Share")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    shareTargetDrawing = null
+                                    shareError = null
+                                }
+                            ) {
+                                Text("Cancel")
+                            }
+                        }
+                    )
                 }
 
             }
 
+        }
+    }
+}
+
+//NEW: Cloud share
+@Composable
+fun SharedDrawingCard(shared: SharedDrawing) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = shared.title.ifBlank { "Untitled" },
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            val formatted = remember(shared.timestamp) {
+                java.text.SimpleDateFormat("MMM d, yyyy HH:mm")
+                    .format(java.util.Date(shared.timestamp))
+            }
+
+            Text(
+                text = "From: ${shared.senderId.take(8)}… • $formatted",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = shared.imageUrl,
+                    contentDescription = shared.title,
+                    modifier = Modifier
+                        .width(100.dp)
+                        .height(180.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
         }
     }
 }
