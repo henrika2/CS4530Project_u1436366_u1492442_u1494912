@@ -1,4 +1,23 @@
 package com.example.paintify.screens
+/**
+ * Paintify - Home Screen
+ * ----------------------
+ * Shows the gallery of saved drawings and entry points for drawing, import,
+ * and image analysis features.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * The `HomeViewModel` exposes a list of `DrawingData` objects from the
+ * `DrawingRepository` and provides operations to delete items or import
+ * images from the system photo picker. `HomeScreen` renders the list of
+ * drawings as cards with preview thumbnails and actions for open, share,
+ * and delete, along with floating action buttons to start a new canvas,
+ * import from the gallery, or launch the AI analysis flow.
+ */
 
 import android.content.Intent
 import android.net.Uri

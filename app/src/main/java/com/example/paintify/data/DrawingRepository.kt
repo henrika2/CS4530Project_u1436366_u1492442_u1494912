@@ -1,5 +1,22 @@
 package com.example.paintify.data
-
+/**
+ * Paintify - Drawing Repository
+ * -----------------------------
+ * Repository layer that coordinates persistence of drawings and images.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * The `DrawingRepository` mediates access to the Room database and local
+ * file storage for all drawing-related operations. It exposes flows of
+ * saved drawings, tracks the currently selected drawing, and provides
+ * methods to save new drawings, save merged drawings over backgrounds,
+ * update metadata, delete entries, and import images from the gallery.
+ * All work is performed in a coroutine `scope` to keep the UI responsive.
+ */
 import android.content.Context
 import android.net.Uri
 import android.util.Log

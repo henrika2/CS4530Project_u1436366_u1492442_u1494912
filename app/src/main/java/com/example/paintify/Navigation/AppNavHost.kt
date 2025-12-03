@@ -1,5 +1,22 @@
 package com.example.paintify.Navigation
-
+/**
+ * Paintify - Navigation Host
+ * --------------------------
+ * Configures the Jetpack Navigation graph for all major screens.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * The `AppNavHost` composable wires together the app’s navigation routes,
+ * including the splash screen, home gallery, drawing canvas (with and
+ * without background), detail view, and AI image analysis screen. It
+ * defines the route arguments and transitions so that screens can share
+ * data such as drawing IDs and image URIs while keeping navigation logic
+ * centralized and declarative.
+ */
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
