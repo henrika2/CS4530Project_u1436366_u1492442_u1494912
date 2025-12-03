@@ -70,4 +70,26 @@ object CloudSync {
 
         return cloudDrawing
     }
+
+    /**
+     * Load all cloud drawings for a given userId, ordered by timestamp.
+     */
+    suspend fun loadDrawingsForUser(userId: String): List<CloudDrawing> {
+        val db = Firebase.firestore
+
+        val snapshot = db.collection(COLLECTION_NAME)
+            .whereEqualTo("userId", userId)
+            .get()
+            .await()
+
+        return snapshot.documents.map { doc ->
+            CloudDrawing(
+                id = doc.id,
+                userId = doc.getString("userId") ?: "",
+                imageUrl = doc.getString("imageUrl") ?: "",
+                timestamp = doc.getLong("timestamp") ?: 0L,
+                title = doc.getString("title") ?: ""
+            )
+        }.sortedByDescending { it.timestamp }
+    }
 }

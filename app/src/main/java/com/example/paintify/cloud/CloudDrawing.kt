@@ -5,5 +5,7 @@ data class CloudDrawing(
     val userId: String = "",
     val imageUrl: String = "",
     val timestamp: Long = 0L,
-    val title: String = ""
+    val title: String = "",
+    val widthPx: Int = 0,
+    val heightPx: Int = 0
 )

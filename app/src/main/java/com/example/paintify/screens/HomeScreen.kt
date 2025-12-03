@@ -22,6 +22,7 @@ package com.example.paintify.screens
 import android.content.Intent
 import android.net.Uri
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +30,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -55,6 +57,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import java.io.File
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+import com.example.paintify.cloud.CloudSync
+import com.example.paintify.cloud.CloudDrawing
+import kotlinx.coroutines.launch
 
 class HomeViewModel(
     private val repo: DrawingRepository
@@ -85,6 +95,36 @@ fun HomeScreen(
 ) {
     val ctx = LocalContext.current
     val drawings by vm.drawings.collectAsState()
+
+
+    // NEW: Cloud sync
+    // Auth + coroutine scope
+    val auth = Firebase.auth
+    val user = auth.currentUser
+    val scope = rememberCoroutineScope()
+
+    // Cloud drawings state
+    var cloudDrawings by remember { mutableStateOf<List<CloudDrawing>>(emptyList()) }
+    var isCloudLoading by remember { mutableStateOf(false) }
+    var cloudError by remember { mutableStateOf<String?>(null) }
+
+    // Load from Firestore whenever the logged-in user changes
+    LaunchedEffect(user?.uid) {
+        if (user != null) {
+            isCloudLoading = true
+            try {
+                cloudDrawings = CloudSync.loadDrawingsForUser(user.uid)
+                cloudError = null
+            } catch (e: Exception) {
+                cloudError = e.message
+            } finally {
+                isCloudLoading = false
+            }
+        } else {
+            cloudDrawings = emptyList()
+            cloudError = null
+        }
+    }
 
     // Gallery picker
     val pickMedia = rememberLauncherForActivityResult(
@@ -146,7 +186,7 @@ fun HomeScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (drawings.isEmpty()) {
+            if (drawings.isEmpty() && cloudDrawings.isEmpty()) {
                 Text("No saved drawings yet. Tap  ➕  to start, or Import from gallery.")
             } else {
                 LazyColumn(
@@ -176,7 +216,98 @@ fun HomeScreen(
                             onDelete = { vm.delete(drawing) }
                         )
                     }
+
+
+                    //NEW: Cloud sync
+                    item {
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = "Your Cloud Drawings",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+
+                    when {
+                        isCloudLoading -> {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+
+                        cloudError != null -> {
+                            item {
+                                Text(
+                                    text = "Error loading cloud drawings: $cloudError",
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+
+                                Log.d("CloudSync", "Error loading cloud drawings: $cloudError")
+                            }
+                        }
+
+                        cloudDrawings.isEmpty() -> {
+                            item {
+                                Text(
+                                    text = "No cloud drawings yet.",
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        }
+
+                        else -> {
+                            items(cloudDrawings, key = { it.id }) { cloud ->
+                                CloudDrawingRow(cloud)
+                            }
+                        }
+                    }
                 }
+
+            }
+
+        }
+    }
+}
+
+//NEW: Cloud sync
+@Composable
+fun CloudDrawingRow(drawing: CloudDrawing) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+
+
+            Text(
+                text = drawing.title.ifBlank { "Untitled" },
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "Uploaded: " +
+                        java.text.SimpleDateFormat("MMM d, yyyy HH:mm")
+                            .format(java.util.Date(drawing.timestamp)),
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(Modifier.height(4.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = drawing.imageUrl,
+                    contentDescription = drawing.title,
+                    modifier = Modifier
+                        .width(100.dp)
+                        .height(180.dp),
+                    contentScale = ContentScale.FillBounds
+                )
             }
         }
     }

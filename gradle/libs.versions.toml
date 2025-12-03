@@ -25,6 +25,7 @@ coroutinesPlayServices = "1.7.3"
 googleServices = "4.4.2"
 firebase-bom = "33.2.0"
 material3 = "1.4.0"
+foundationLayout = "1.9.5"
 
 
 
@@ -65,6 +66,7 @@ firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-storage = { module = "com.google.firebase:firebase-storage-ktx" }
 coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutinesPlayServices" }
 material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
