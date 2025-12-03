@@ -147,7 +147,9 @@ class AnalysisViewModel : ViewModel() {
                 )
 
             } catch (e: Exception) {
-                Log.e("AnalysisViewModel", "Error analyzing image", e)
+                Log.e("AnalysisViewModel", e.message
+                    ?: e.localizedMessage
+                    ?: e.toString(), e)
                 _state.value = AnalysisUiState.Error(e.message ?: "Unknown error")
             }
         }

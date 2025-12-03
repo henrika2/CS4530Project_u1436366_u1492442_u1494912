@@ -15,6 +15,7 @@ import androidx.navigation.navArgument
 import com.example.paintify.screens.AnalysisScreen
 import com.example.paintify.screens.DetailScreen
 import com.example.paintify.screens.DrawScreenWithBackground
+import com.example.paintify.screens.LoginScreen
 
 
 @Composable
@@ -31,7 +32,7 @@ fun AppNavHost(
             SplashScreen(
                 logoResId = R.drawable.logo,
                 onFinished = {
-                    navController.navigate("home") {
+                    navController.navigate("login") {
                         popUpTo("splash") { inclusive = true }
                         launchSingleTop = true
                     }
@@ -78,6 +79,10 @@ fun AppNavHost(
                     imageUri = uri
                 )
             }
+        }
+
+        composable("login") {
+            LoginScreen(navController = navController)
         }
     }
 }

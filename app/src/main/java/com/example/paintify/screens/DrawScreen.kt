@@ -65,6 +65,11 @@ import androidx.compose.ui.layout.ContentScale
 import android.widget.Toast
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextField
+import androidx.lifecycle.viewModelScope
+import com.example.paintify.cloud.CloudSync
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+
 
 
 import java.io.File

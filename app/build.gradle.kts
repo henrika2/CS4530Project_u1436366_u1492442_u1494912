@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 // Read secrets from secrets.properties
@@ -72,6 +73,7 @@ dependencies {
     implementation(libs.androidx.runner)
     implementation(libs.androidx.navigation.testing)
     implementation(libs.androidx.navigation.common.ktx)
+    implementation(libs.material3)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -108,6 +110,13 @@ dependencies {
     androidTestImplementation("androidx.test:core-ktx:1.5.0")
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test:rules:1.5.0")
+
+    implementation(platform(libs.firebase.bom))          // BOM must come before Firebase libs
+    implementation(libs.firebase.auth)                   // Firebase Auth KTX
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.analytics)              // optional
+    implementation(libs.coroutines.play.services)
+    implementation(libs.firebase.storage)
 
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:<compose_version>")
     debugImplementation("androidx.compose.ui:ui-test-manifest:<compose_version>")

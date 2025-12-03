@@ -15,6 +15,10 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Rect
 import androidx.compose.ui.graphics.Color
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+import com.example.paintify.cloud.CloudSync
+
 
 
 class DrawingRepository(
@@ -69,6 +73,22 @@ class DrawingRepository(
                 )
                 dao.insert(entity)
                 Log.d("DrawingRepo", "Saved drawing: ${file.absolutePath}")
+
+
+
+                // 🔥 NEW: upload to cloud if user is logged in
+                val user = Firebase.auth.currentUser
+                if (user != null) {
+                    runCatching {
+                        CloudSync.uploadDrawingFileAndSaveMetadata(
+                            userId = user.uid,
+                            title = entity.name,
+                            filePath = entity.filePath
+                        )
+                    }.onFailure {
+                        Log.e("DrawingRepo", "Cloud upload failed", it)
+                    }
+                }
             } catch (t: Throwable) {
                 Log.e("DrawingRepo", "Failed to save drawing", t)
             }
@@ -130,6 +150,20 @@ class DrawingRepository(
                 )
                 dao.insert(entity)
                 Log.d("DrawingRepo", "Saved merged drawing: ${file.absolutePath}")
+
+                // NEW: upload merged drawing to cloud if user logged in
+                val user = Firebase.auth.currentUser
+                if (user != null) {
+                    runCatching {
+                        CloudSync.uploadDrawingFileAndSaveMetadata(
+                            userId = user.uid,
+                            title = entity.name,
+                            filePath = entity.filePath
+                        )
+                    }.onFailure {
+                        Log.e("DrawingRepo", "Cloud upload failed", it)
+                    }
+                }
             } catch (t: Throwable) {
                 Log.e("DrawingRepo", "Failed to save merged drawing", t)
             }

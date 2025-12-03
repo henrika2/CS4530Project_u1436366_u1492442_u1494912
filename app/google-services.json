@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "158098648678",
+    "project_id": "final-e2050",
+    "storage_bucket": "final-e2050.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:158098648678:android:859de743551e0e05fc07a7",
+        "android_client_info": {
+          "package_name": "com.example.paintify"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGdA-awzB6xIjvMGDTS59kZz2ohdhC_UE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
