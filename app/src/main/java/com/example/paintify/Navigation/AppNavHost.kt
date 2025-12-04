@@ -33,6 +33,7 @@ import com.example.paintify.screens.AnalysisScreen
 import com.example.paintify.screens.DetailScreen
 import com.example.paintify.screens.DrawScreenWithBackground
 import com.example.paintify.screens.LoginScreen
+import com.example.paintify.screens.MediaScreen
 
 
 @Composable
@@ -100,6 +101,10 @@ fun AppNavHost(
 
         composable("login") {
             LoginScreen(navController = navController)
+        }
+
+        composable("media") {
+            MediaScreen(navController = navController)
         }
     }
 }

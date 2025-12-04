@@ -17,49 +17,7 @@ object CloudSharing {
 
     private const val COLLECTION_NAME = "shared_drawings"
 
-    /**
-     * Share a drawing with another user by email.
-     * - Uploads (or re-uploads) the file to Storage via CloudSync
-     * - Creates a doc in shared_drawings with imageUrl + sender/receiver info
-     */
-    suspend fun shareDrawingWithUser(
-        senderId: String,
-        receiverEmail: String,
-        localFilePath: String,
-        title: String
-    ): SharedDrawing {
-        // Reuse your existing upload code: get a public imageUrl
-        val cloud = CloudSync.uploadDrawingFileAndSaveMetadata(
-            userId = senderId,
-            title = title,
-            filePath = localFilePath
-        )
 
-        val db = Firebase.firestore
-        val docRef = db.collection(COLLECTION_NAME).document()
-        val timestamp = System.currentTimeMillis()
-
-        val shared = SharedDrawing(
-            id = docRef.id,
-            imageUrl = cloud.imageUrl,
-            senderId = senderId,
-            receiverEmail = receiverEmail,
-            timestamp = timestamp,
-            title = title
-        )
-
-        docRef.set(
-            mapOf(
-                "imageUrl" to shared.imageUrl,
-                "senderId" to shared.senderId,
-                "receiverEmail" to shared.receiverEmail,
-                "timestamp" to shared.timestamp,
-                "title" to shared.title
-            )
-        ).await()
-
-        return shared
-    }
 
     /**
      * Load drawings shared *to* this user (by email).
@@ -101,5 +59,34 @@ object CloudSharing {
         snapshot.documents.forEach { doc ->
             doc.reference.delete().await()
         }
+    }
+    /**
+     * Share an already-uploaded cloud drawing with another user by email.
+     *
+     * The receiver can later query Firestore for documents where
+     * receiverEmail == their email to see drawings shared with them.
+     */
+    suspend fun shareCloudDrawingWithUser(
+        senderId: String,
+        receiverEmail: String,
+        imageUrl: String,
+        title: String
+    ) {
+        val db = Firebase.firestore
+        val timestamp = System.currentTimeMillis()
+
+        val data = mapOf(
+            "senderId" to senderId,
+            "receiverEmail" to receiverEmail,
+            "imageUrl" to imageUrl,
+            "title" to title,
+            "timestamp" to timestamp,
+            "type" to "cloud"  // optional, but handy if you also store local shares here
+        )
+
+        // Fire-and-forget-ish, but suspend until write completes
+        db.collection(COLLECTION_NAME)
+            .add(data)
+            .await()
     }
 }

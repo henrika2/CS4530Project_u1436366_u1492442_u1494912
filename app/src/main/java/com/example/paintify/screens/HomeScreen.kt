@@ -118,6 +118,7 @@ fun HomeScreen(
     var shareEmail by remember { mutableStateOf("") }
     var shareError by remember { mutableStateOf<String?>(null) }
     var isSharing by remember { mutableStateOf(false) }
+    var shareTargetCloud by remember { mutableStateOf<CloudDrawing?>(null) }
 
     // Load from Firestore whenever the logged-in user changes
     LaunchedEffect(user?.uid) {
@@ -177,12 +178,14 @@ fun HomeScreen(
         floatingActionButton = {
             Row(
                 modifier = Modifier.padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
+
+
 
                 // Analyze Image button
                 ExtendedFloatingActionButton(
-                    text = { Text("Analyze Image") },
+                    text = { Text("Analyze") },
                     icon = { Icon(Icons.Default.IosShare, contentDescription = "Analyze") },
                     onClick = {
                         pickForAnalysis.launch(
@@ -201,10 +204,18 @@ fun HomeScreen(
                     }
                 )
 
+                ExtendedFloatingActionButton(
+                    text = { Text("Media") },
+                    icon = { Icon(Icons.Default.IosShare, contentDescription = "Media") },
+                    onClick = { navController.navigate("media") }
+                )
+
                 // New drawing (blank canvas)
                 FloatingActionButton(onClick = { navController.navigate("canvas") }) {
                     Icon(Icons.Default.Add, contentDescription = "New")
                 }
+
+
             }
         }
     ) { padding ->
@@ -216,7 +227,7 @@ fun HomeScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (drawings.isEmpty() && cloudDrawings.isEmpty()) {
+            if (drawings.isEmpty() && cloudDrawings.isEmpty() && sharedToMe.isEmpty()) {
                 Text("No saved drawings yet. Tap  ➕  to start, or Import from gallery.")
             } else {
                 LazyColumn(
@@ -227,12 +238,6 @@ fun HomeScreen(
                         DrawingCard(
                             drawing = drawing,
                             onOpen = { navController.navigate("canvas/${drawing.id}") },
-                            onShare = {
-                                //NEW: Cloud share
-                                shareTargetDrawing = drawing
-                                shareEmail = ""
-                                shareError = null
-                            },
                             onDelete = { vm.delete(drawing) }
                         )
                     }
@@ -284,7 +289,34 @@ fun HomeScreen(
 
                         else -> {
                             items(cloudDrawings, key = { it.id }) { cloud ->
-                                CloudDrawingRow(cloud)
+                                CloudDrawingRow(
+                                    drawing = cloud,
+                                    onShare = {
+                                        shareTargetCloud = cloud
+                                        shareError = null
+                                        shareEmail = ""
+                                    },
+                                    onUnshare = {
+                                        val sender = user
+                                        if (sender == null) {
+                                            // You can show a Toast or error here if you like
+                                            return@CloudDrawingRow
+                                        }
+
+                                        scope.launch {
+                                            try {
+                                                CloudSharing.unshareDrawing(
+                                                    senderId = sender.uid,
+                                                    imageUrl = cloud.imageUrl
+                                                )
+
+                                            } catch (e: Exception) {
+                                                e.printStackTrace()
+
+                                            }
+                                        }
+                                    }
+                                )
                             }
                         }
                     }
@@ -341,16 +373,17 @@ fun HomeScreen(
 
                 }
 
-                if (shareTargetDrawing != null) {
+
+                if (shareTargetCloud != null) {
                     AlertDialog(
                         onDismissRequest = {
-                            shareTargetDrawing = null
+                            shareTargetCloud = null
                             shareError = null
                         },
                         title = { Text("Share Drawing") },
                         text = {
                             Column {
-                                Text("Send \"${shareTargetDrawing!!.name}\" to:")
+                                Text("Send \"${shareTargetCloud!!.title}\" to:")
                                 Spacer(Modifier.height(8.dp))
                                 OutlinedTextField(
                                     value = shareEmail,
@@ -378,19 +411,19 @@ fun HomeScreen(
                                         return@TextButton
                                     }
 
-                                    val drawing = shareTargetDrawing!!
+                                    val drawing = shareTargetCloud!!
                                     isSharing = true
                                     shareError = null
 
                                     scope.launch {
                                         try {
-                                            CloudSharing.shareDrawingWithUser(
+                                            CloudSharing.shareCloudDrawingWithUser(
                                                 senderId = sender.uid,
                                                 receiverEmail = shareEmail.trim(),
-                                                localFilePath = drawing.filePath,
-                                                title = drawing.name
+                                                imageUrl = drawing.imageUrl,
+                                                title = drawing.title.ifBlank { "Untitled" }
                                             )
-                                            shareTargetDrawing = null
+                                            shareTargetCloud = null
                                         } catch (e: Exception) {
                                             shareError = e.message ?: "Failed to share"
                                         } finally {
@@ -405,7 +438,7 @@ fun HomeScreen(
                         dismissButton = {
                             TextButton(
                                 onClick = {
-                                    shareTargetDrawing = null
+                                    shareTargetCloud = null
                                     shareError = null
                                 }
                             ) {
@@ -414,6 +447,8 @@ fun HomeScreen(
                         }
                     )
                 }
+
+
 
             }
 
@@ -464,23 +499,43 @@ fun SharedDrawingCard(shared: SharedDrawing) {
 
 //NEW: Cloud sync
 @Composable
-fun CloudDrawingRow(drawing: CloudDrawing) {
+fun CloudDrawingRow(drawing: CloudDrawing, onShare: () -> Unit, onUnshare: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
-            Text(
-                text = drawing.title.ifBlank { "Untitled" },
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = "Uploaded: " +
-                        java.text.SimpleDateFormat("MMM d, yyyy HH:mm")
-                            .format(java.util.Date(drawing.timestamp)),
-                style = MaterialTheme.typography.bodySmall
-            )
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = drawing.title.ifBlank { "Untitled" },
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "Uploaded: " +
+                                java.text.SimpleDateFormat("MMM d, yyyy HH:mm")
+                                    .format(java.util.Date(drawing.timestamp)),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                IconButton(onClick = onShare) {
+                    Icon(Icons.Default.IosShare, contentDescription = "Share")
+                }
+                IconButton(onClick = onUnshare) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Unshare cloud drawing"
+                    )
+                }
+            }
+
+
+
             Spacer(Modifier.height(4.dp))
             Box(
                 modifier = Modifier.fillMaxWidth(),
@@ -495,6 +550,8 @@ fun CloudDrawingRow(drawing: CloudDrawing) {
                     contentScale = ContentScale.FillBounds
                 )
             }
+
+
         }
     }
 }
@@ -503,7 +560,6 @@ fun CloudDrawingRow(drawing: CloudDrawing) {
 private fun DrawingCard(
     drawing: DrawingData,
     onOpen: () -> Unit,
-    onShare: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -526,9 +582,6 @@ private fun DrawingCard(
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = onShare) {
-                        Icon(Icons.Default.IosShare, contentDescription = "Share")
-                    }
                     IconButton(onClick = onDelete) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete")
                     }

@@ -35,7 +35,9 @@ import androidx.compose.ui.graphics.Color
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import com.example.paintify.cloud.CloudSync
-
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.URL
 
 
 class DrawingRepository(
@@ -233,6 +235,45 @@ class DrawingRepository(
                 Log.e("DrawingRepo", "Import failed", t)
             }
         }
+    }
+
+    /**
+     * Download an image from a URL, save it into app storage, insert a DrawingData row,
+     * and return the new drawing's ID so we can open it in the canvas.
+     */
+    suspend fun importImageFromUrl(
+        imageUrl: String,
+        title: String = "Imported from Cloud"
+    ): Long = withContext(Dispatchers.IO) {
+        // 1) Download bytes from the URL
+        val url = URL(imageUrl)
+        val connection = url.openConnection()
+        connection.connect()
+
+        val input = connection.getInputStream()
+
+        // 2) Save to a file in app's internal storage
+        val fileName = "cloud_${System.currentTimeMillis()}.png"
+        val file = java.io.File(appContext.filesDir, fileName)
+
+        file.outputStream().use { output ->
+            input.copyTo(output)
+        }
+
+        // 3) Probe width/height
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.absolutePath, opts)
+
+        val entity = DrawingData(
+            name = title.ifBlank { file.nameWithoutExtension },
+            filePath = file.absolutePath,
+            widthPx = if (opts.outWidth > 0) opts.outWidth else 0,
+            heightPx = if (opts.outHeight > 0) opts.outHeight else 0
+        )
+
+        val newId = dao.insert(entity)
+        Log.d("DrawingRepo", "Imported from URL: ${file.absolutePath} (id=$newId)")
+        newId
     }
 
 
