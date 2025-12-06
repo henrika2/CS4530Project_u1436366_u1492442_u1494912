@@ -21,15 +21,23 @@ package com.example.paintify.screens
 import android.content.Intent
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults.cardColors
+import androidx.compose.material3.CardDefaults.cardElevation
+import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -41,6 +49,7 @@ import androidx.navigation.NavHostController
 import com.example.paintify.DrawApplication
 import com.example.paintify.data.DrawingData
 import com.example.paintify.data.DrawingRepository
+import com.example.paintify.ui.PaintifyColors
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -79,12 +88,22 @@ fun DetailScreen(
     val d by vm.drawing.collectAsState()
 
     Scaffold(
+        containerColor = PaintifyColors.Background,
         topBar = {
             TopAppBar(
-                title = { Text(d?.name ?: "Drawing") },
+                title = {
+                    Text(
+                        d?.name ?: "Drawing",
+                        color = Color.White
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
                     }
                 },
                 actions = {
@@ -105,7 +124,13 @@ fun DetailScreen(
                                 }
                             }
                         }
-                    ) { Icon(Icons.Default.IosShare, contentDescription = "Share") }
+                    ) {
+                        Icon(
+                            Icons.Default.IosShare,
+                            contentDescription = "Share",
+                            tint = Color.White
+                        )
+                    }
 
                     IconButton(
                         onClick = {
@@ -114,39 +139,104 @@ fun DetailScreen(
                                 navController.popBackStack()
                             }
                         }
-                    ) { Icon(Icons.Default.Delete, contentDescription = "Delete") }
-                }
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = PaintifyColors.Error
+                        )
+                    }
+                },
+                colors = topAppBarColors(
+                    containerColor = PaintifyColors.Surface,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                )
             )
         }
     ) { pad ->
-        if (d == null) {
-            Box(Modifier.fillMaxSize().padding(pad))
-        } else {
-            val file = File(d!!.filePath)
-            val bmp = remember(file.absolutePath) {
-                if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
-            }
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(pad)
-                    .padding(16.dp)
-            ) {
-                if (bmp != null) {
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = d!!.name,
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(PaintifyColors.Background)
+                .padding(pad)
+        ) {
+            if (d == null) {
+                // Empty state
+            } else {
+                val file = File(d!!.filePath)
+                val bmp = remember(file.absolutePath) {
+                    if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
-                    )
-                } else {
-                    Text("Image not found on disk.")
+                            .weight(1f),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = cardColors(
+                            containerColor = PaintifyColors.SurfaceVariant
+                        ),
+                        elevation = cardElevation(8.dp)
+                    ) {
+                        if (bmp != null) {
+                            Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = d!!.name,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "Image not found on disk.",
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = cardColors(
+                            containerColor = PaintifyColors.Surface
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                "Details",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White
+                            )
+                            Text(
+                                "Size: ${d!!.widthPx} × ${d!!.heightPx}px",
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                            Text(
+                                "Saved: " +
+                                        java.text.SimpleDateFormat("MMM d, yyyy")
+                                            .format(d!!.createdAt),
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
                 }
-                Spacer(Modifier.height(12.dp))
-                Text("Size: ${d!!.widthPx} × ${d!!.heightPx}px")
-                Text("Saved: " + java.text.SimpleDateFormat("MMM d, yyyy").format(d!!.createdAt))
             }
         }
     }
 }
+

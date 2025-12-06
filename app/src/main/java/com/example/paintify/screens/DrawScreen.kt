@@ -15,32 +15,52 @@
  * The ViewModel (`DrawingViewModel`) manages state for strokes, brushes, colors,
  * and drawing tools, ensuring UI-state synchronization through Kotlin Flows.
  */
-
 package com.example.paintify.screens
+
+import android.graphics.BitmapFactory
+import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoFixOff
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults.cardColors
+import androidx.compose.material3.CardDefaults.cardElevation
+//import androidx.compose.material3.ExposedDropdownMenuDefaults.textFieldColors
+import androidx.compose.material3.TextFieldDefaults
+
+import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
+//import androidx.compose.material3.TextFieldDefaults.textFieldColors
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavHostController
 import com.example.paintify.DrawApplication
+import com.example.paintify.cloud.CloudSync
+import com.example.paintify.data.DrawingData
 import com.example.paintify.data.DrawingRepository
 import com.example.paintify.models.CanvasStroke
 import com.example.paintify.models.PaintParams
@@ -48,31 +68,17 @@ import com.example.paintify.models.ShapeType
 import com.example.paintify.models.Stroke
 import com.example.paintify.models.ToolType
 import com.example.paintify.ui.DrawingCanvas
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.material.icons.filled.AutoFixOff   // <— eraser icon
-import com.example.paintify.data.DrawingData
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-
-import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import android.widget.Toast
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextField
-import androidx.lifecycle.viewModelScope
-import com.example.paintify.cloud.CloudSync
+import com.example.paintify.ui.PaintifyColors
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-
-
-
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import java.io.File
+
 /**
  * ViewModel class responsible for managing all drawing-related states
  * such as brush type, color, pen width, and drawn strokes.
@@ -132,19 +138,18 @@ class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() 
 
     private var currentPoints: List<Offset> = emptyList()
 
-    // ADD: expose tool type so UI can show toggle state
+    // expose tool type so UI can show toggle state
     val toolType: StateFlow<ToolType> = tool
 
-    // ADD: dedicated toggles for toolbar
     fun setEraser() {
-        // we use white = eraser to match your white canvas background
         _selectedColor.value = Color.White
         tool.value = ToolType.ERASER
     }
+
     fun setPen() {
         if (tool.value == ToolType.ERASER) {
             tool.value = ToolType.PEN
-            // keep whatever color user had (except white) – do nothing else here
+            // keep previous color
         }
     }
 
@@ -222,7 +227,7 @@ class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() 
         }
     }
 
-    /** NEW: Save current strokes to PNG + DB via repository */
+    /** Save current strokes to PNG + DB via repository */
     fun saveCurrent(name: String, widthPx: Int, heightPx: Int) {
         val strokesNow = strokes.value
         val bgPath = selectedDrawing.value?.filePath
@@ -243,8 +248,21 @@ class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() 
             )
         }
     }
-    fun setSelectedDrawing(drawingId: Long){
+
+    fun setSelectedDrawing(drawingId: Long) {
         repository.setSelectedDrawingId(drawingId)
+    }
+}
+
+/** Provider (unchanged pattern) */
+object DrawingViewModelProvider {
+    val Factory = viewModelFactory {
+        initializer {
+            DrawingViewModel(
+                (this[androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
+                        as DrawApplication).drawingRepository
+            )
+        }
     }
 }
 
@@ -257,9 +275,9 @@ class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() 
 fun DrawScreen(
     navController: NavHostController,
     vm: DrawingViewModel = viewModel(factory = DrawingViewModelProvider.Factory),
-    drawingId:Long = 0
+    drawingId: Long = 0
 ) {
-    if (drawingId.toInt() != 0){
+    if (drawingId.toInt() != 0) {
         vm.setSelectedDrawing(drawingId)
     }
     val ctx = LocalContext.current
@@ -272,22 +290,36 @@ fun DrawScreen(
     var canvasSize by remember { mutableStateOf(IntSize(0, 0)) }
     var shapeMenuExpanded by remember { mutableStateOf(false) }
     var showColorPicker by remember { mutableStateOf(false) }
-    var drawingName by remember { mutableStateOf("My Drawing") }
 
     Scaffold(
+        containerColor = PaintifyColors.Background,
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFE5E5E5),
-                    titleContentColor = Color.Black
+                title = {
+                    Text(
+                        "Canvas",
+                        color = Color.White
+                    )
+                },
+                colors = topAppBarColors(
+                    containerColor = PaintifyColors.Surface,
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
                 ),
-                title = { Text("Canvas") },
                 actions = {
                     IconButton(onClick = { showColorPicker = true }) {
-                        Icon(Icons.Default.ColorLens, contentDescription = "Color")
+                        Icon(
+                            Icons.Default.ColorLens,
+                            contentDescription = "Color",
+                            tint = PaintifyColors.AccentSoft
+                        )
                     }
                     IconButton(onClick = { shapeMenuExpanded = true }) {
-                        Icon(Icons.Default.Brush, contentDescription = "Brush shape")
+                        Icon(
+                            Icons.Default.Brush,
+                            contentDescription = "Brush shape",
+                            tint = Color.White
+                        )
                     }
                     DropdownMenu(
                         expanded = shapeMenuExpanded,
@@ -295,15 +327,24 @@ fun DrawScreen(
                     ) {
                         DropdownMenuItem(
                             text = { Text("Line") },
-                            onClick = { vm.setBrush(ShapeType.LINE); shapeMenuExpanded = false }
+                            onClick = {
+                                vm.setBrush(ShapeType.LINE)
+                                shapeMenuExpanded = false
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Circle") },
-                            onClick = { vm.setBrush(ShapeType.CIRCLE); shapeMenuExpanded = false }
+                            onClick = {
+                                vm.setBrush(ShapeType.CIRCLE)
+                                shapeMenuExpanded = false
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Rectangle") },
-                            onClick = { vm.setBrush(ShapeType.RECT); shapeMenuExpanded = false }
+                            onClick = {
+                                vm.setBrush(ShapeType.RECT)
+                                shapeMenuExpanded = false
+                            }
                         )
                     }
 
@@ -316,7 +357,10 @@ fun DrawScreen(
                         Icon(
                             imageVector = Icons.Default.AutoFixOff,
                             contentDescription = if (toolType == ToolType.ERASER) "Eraser on" else "Eraser off",
-                            tint = if (toolType == ToolType.ERASER) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                            tint = if (toolType == ToolType.ERASER)
+                                PaintifyColors.Accent
+                            else
+                                Color.White
                         )
                     }
 
@@ -324,7 +368,11 @@ fun DrawScreen(
                     var showSaveDialog by remember { mutableStateOf(false) }
 
                     IconButton(onClick = { showSaveDialog = true }) {
-                        Icon(Icons.Default.Save, contentDescription = "Save")
+                        Icon(
+                            Icons.Default.Save,
+                            contentDescription = "Save",
+                            tint = PaintifyColors.AccentSoft
+                        )
                     }
 
                     if (showSaveDialog) {
@@ -332,17 +380,51 @@ fun DrawScreen(
 
                         AlertDialog(
                             onDismissRequest = { showSaveDialog = false },
-                            title = { Text("Save Drawing") },
+                            title = {
+                                Text(
+                                    "Save Drawing",
+                                    color = Color.White
+                                )
+                            },
                             text = {
                                 Column {
-                                    Text("Enter a name for your drawing:")
+                                    Text(
+                                        "Enter a name for your drawing:",
+                                        color = Color.White.copy(alpha = 0.8f)
+                                    )
                                     Spacer(modifier = Modifier.height(8.dp))
+//                                    TextField(
+//                                        value = tempName,
+//                                        onValueChange = { tempName = it },
+//                                        singleLine = true,
+//                                        placeholder = { Text("e.g. My masterpiece") },
+//                                        colors = TextFieldDefaults.textFieldColors(
+//                                            backgroundColor = PaintifyColors.Surface,
+//                                            textColor = Color.White,
+//                                            cursorColor = PaintifyColors.Accent,
+//                                            focusedIndicatorColor = PaintifyColors.Accent,
+//                                            unfocusedIndicatorColor = Color.Transparent,
+//                                            focusedLabelColor = PaintifyColors.Accent,
+//                                            unfocusedLabelColor = Color.LightGray
+//                                        )
+//                                    )
                                     TextField(
                                         value = tempName,
                                         onValueChange = { tempName = it },
                                         singleLine = true,
-                                        placeholder = { Text("e.g. My masterpiece") }
+                                        placeholder = { Text("e.g. My masterpiece") },
+                                        colors = TextFieldDefaults.colors(
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White,
+                                            focusedContainerColor = PaintifyColors.Surface,
+                                            unfocusedContainerColor = PaintifyColors.Surface,
+                                            cursorColor = PaintifyColors.Accent,
+                                            focusedIndicatorColor = PaintifyColors.Accent,
+                                            unfocusedIndicatorColor = Color.Transparent
+                                        )
                                     )
+
+
                                 }
                             },
                             confirmButton = {
@@ -355,41 +437,49 @@ fun DrawScreen(
                                             heightPx = canvasSize.height
                                         )
 
-                                        Toast.makeText(context, "Saved as \"$saveName\"", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Saved as \"$saveName\"",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
 
                                         navController.popBackStack("home", inclusive = false)
                                     }
 
                                     showSaveDialog = false
                                 }) {
-                                    Text("Save")
+                                    Text("Save", color = PaintifyColors.AccentSoft)
                                 }
                             },
                             dismissButton = {
                                 TextButton(onClick = { showSaveDialog = false }) {
-                                    Text("Cancel")
+                                    Text("Cancel", color = Color.White.copy(alpha = 0.7f))
                                 }
-                            }
+                            },
+                            containerColor = PaintifyColors.SurfaceVariant
                         )
                     }
-
                 }
             )
         },
         bottomBar = {
             BottomAppBar(
-                modifier = Modifier.height(60.dp),
-                containerColor = Color(0xFFE5E5E5)
+                modifier = Modifier.height(64.dp),
+                containerColor = PaintifyColors.Surface,
+                contentColor = Color.White
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
+                        .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Pen width: ${penWidth.toInt()} px")
+                        Text(
+                            "Pen width: ${penWidth.toInt()} px",
+                            color = Color.White
+                        )
                         Slider(
                             value = penWidth,
                             onValueChange = vm::setWidthPx,
@@ -403,6 +493,7 @@ fun DrawScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(PaintifyColors.Background)
                 .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -410,7 +501,7 @@ fun DrawScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .background(Color.White)
+                    .background(Color.White) // keep bright canvas
                     .onSizeChanged { canvasSize = it }
             ) {
                 DrawingCanvas(
@@ -427,95 +518,18 @@ fun DrawScreen(
     if (showColorPicker) {
         ColorPickerDialogRGB(
             initial = selectedColor,
-            onPick = { vm.setColor(it); showColorPicker = false },
+            onPick = {
+                vm.setColor(it)
+                showColorPicker = false
+            },
             onDismiss = { showColorPicker = false }
         )
     }
 }
 
-/** Provider (unchanged pattern) */
-object DrawingViewModelProvider {
-    val Factory = viewModelFactory {
-        initializer {
-            DrawingViewModel(
-                (this[androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
-                        as DrawApplication).drawingRepository
-            )
-        }
-    }
-}
-
-
-@Composable
-private fun ColorPreview(color: Color, modifier: Modifier = Modifier) {
-    ElevatedCard(modifier = modifier.size(56.dp)) {
-        Box(Modifier.fillMaxSize().background(color))
-    }
-}
-
-
-@Composable
-private fun ColorSlider(
-    label: String,
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>
-) {
-    Column(Modifier.fillMaxWidth()) {
-        Text("$label: ${value.toInt()}")
-        Slider(value = value, onValueChange = onValueChange, valueRange = valueRange)
-    }
-}
-
-
-
-@Composable
-fun ColorPickerDialogRGB(
-    initial: Color,
-    onDismiss: () -> Unit,
-    onPick: (Color) -> Unit
-) {
-    // Convert initial color (0–1 floats) to 0–255 ints
-    var r by remember { mutableFloatStateOf(initial.red * 255f) }
-    var g by remember { mutableFloatStateOf(initial.green * 255f) }
-    var b by remember { mutableFloatStateOf(initial.blue * 255f) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { onPick(Color(r / 255f, g / 255f, b / 255f)) }) {
-                Text("Select")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-        title = { Text("Pick a Color (RGB)") },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Live preview
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ColorPreview(color = initial)
-                    Text("→")
-                    ColorPreview(color = Color(r / 255f, g / 255f, b / 255f))
-                }
-
-                // RGB sliders
-                ColorSlider("RED", r, { r = it }, 0f..255f)
-                ColorSlider("GREEN", g, { g = it }, 0f..255f)
-                ColorSlider("BLUE", b, { b = it }, 0f..255f)
-            }
-        }
-    )
-}
-
+/**
+ * DrawScreen that overlays strokes on an existing drawing background.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawScreenWithBackground(
@@ -523,11 +537,9 @@ fun DrawScreenWithBackground(
     drawingId: Long,
     vm: DrawingViewModel = viewModel(factory = DrawingViewModelProvider.Factory),
 ) {
-    // Tell the VM which drawing we want, then collect it
     LaunchedEffect(drawingId) { vm.setSelectedDrawingId(drawingId) }
     val drawing by vm.selectedDrawing.collectAsState()
 
-    // Decode the bitmap once per file path (same pattern as DetailScreen)
     val bgBitmap = remember(drawing?.filePath) {
         drawing?.filePath?.let { path ->
             val file = File(path)
@@ -546,15 +558,34 @@ fun DrawScreenWithBackground(
     var drawingName by remember { mutableStateOf(drawing?.name ?: "Edited $drawingId") }
 
     Scaffold(
+        containerColor = PaintifyColors.Background,
         topBar = {
             TopAppBar(
-                title = { Text(drawing?.name ?: "Edit Drawing") },
+                title = {
+                    Text(
+                        drawing?.name ?: "Edit Drawing",
+                        color = Color.White
+                    )
+                },
+                colors = topAppBarColors(
+                    containerColor = PaintifyColors.Surface,
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                ),
                 actions = {
                     IconButton(onClick = { showColorPicker = true }) {
-                        Icon(Icons.Default.ColorLens, contentDescription = "Color")
+                        Icon(
+                            Icons.Default.ColorLens,
+                            contentDescription = "Color",
+                            tint = PaintifyColors.AccentSoft
+                        )
                     }
                     IconButton(onClick = { shapeMenuExpanded = true }) {
-                        Icon(Icons.Default.Brush, contentDescription = "Brush shape")
+                        Icon(
+                            Icons.Default.Brush,
+                            contentDescription = "Brush shape",
+                            tint = Color.White
+                        )
                     }
                     DropdownMenu(
                         expanded = shapeMenuExpanded,
@@ -562,15 +593,24 @@ fun DrawScreenWithBackground(
                     ) {
                         DropdownMenuItem(
                             text = { Text("Line") },
-                            onClick = { vm.setBrush(ShapeType.LINE); shapeMenuExpanded = false }
+                            onClick = {
+                                vm.setBrush(ShapeType.LINE)
+                                shapeMenuExpanded = false
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Circle") },
-                            onClick = { vm.setBrush(ShapeType.CIRCLE); shapeMenuExpanded = false }
+                            onClick = {
+                                vm.setBrush(ShapeType.CIRCLE)
+                                shapeMenuExpanded = false
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Rectangle") },
-                            onClick = { vm.setBrush(ShapeType.RECT); shapeMenuExpanded = false }
+                            onClick = {
+                                vm.setBrush(ShapeType.RECT)
+                                shapeMenuExpanded = false
+                            }
                         )
                     }
 
@@ -580,7 +620,8 @@ fun DrawScreenWithBackground(
                     ) {
                         Icon(
                             imageVector = Icons.Default.AutoFixOff,
-                            contentDescription = if (toolType == ToolType.ERASER) "Eraser on" else "Eraser off"
+                            contentDescription = if (toolType == ToolType.ERASER) "Eraser on" else "Eraser off",
+                            tint = if (toolType == ToolType.ERASER) PaintifyColors.Accent else Color.White
                         )
                     }
 
@@ -594,15 +635,17 @@ fun DrawScreenWithBackground(
                                 )
                             }
                         }
-                    ) { Icon(Icons.Default.Save, contentDescription = "Save") }
-
+                    ) {
+                        Icon(Icons.Default.Save, contentDescription = "Save", tint = PaintifyColors.AccentSoft)
+                    }
                 }
             )
         },
         bottomBar = {
             BottomAppBar(
                 modifier = Modifier.height(60.dp),
-                containerColor = Color(0xFFE5E5E5)
+                containerColor = PaintifyColors.Surface,
+                contentColor = Color.White
             ) {
                 Row(
                     modifier = Modifier
@@ -612,7 +655,10 @@ fun DrawScreenWithBackground(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Pen width: ${penWidth.toInt()} px")
+                        Text(
+                            "Pen width: ${penWidth.toInt()} px",
+                            color = Color.White
+                        )
                         Slider(
                             value = penWidth,
                             onValueChange = vm::setWidthPx,
@@ -626,6 +672,7 @@ fun DrawScreenWithBackground(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(PaintifyColors.Background)
                 .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -645,7 +692,6 @@ fun DrawScreenWithBackground(
                     )
                 }
 
-                // 2) Your drawing layer on top
                 DrawingCanvas(
                     strokes = strokes,
                     onStart = vm::onDragStart,
@@ -665,3 +711,77 @@ fun DrawScreenWithBackground(
         )
     }
 }
+
+@Composable
+private fun ColorPreview(color: Color, modifier: Modifier = Modifier) {
+    ElevatedCard(
+        modifier = modifier.size(56.dp),
+        colors = cardColors(
+            containerColor = color
+        )
+    ) {}
+}
+
+@Composable
+private fun ColorSlider(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            "$label: ${value.toInt()}",
+            color = Color.White
+        )
+        Slider(value = value, onValueChange = onValueChange, valueRange = valueRange)
+    }
+}
+
+@Composable
+fun ColorPickerDialogRGB(
+    initial: Color,
+    onDismiss: () -> Unit,
+    onPick: (Color) -> Unit
+) {
+    var r by remember { mutableFloatStateOf(initial.red * 255f) }
+    var g by remember { mutableFloatStateOf(initial.green * 255f) }
+    var b by remember { mutableFloatStateOf(initial.blue * 255f) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { onPick(Color(r / 255f, g / 255f, b / 255f)) }) {
+                Text("Select", color = PaintifyColors.AccentSoft)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel", color = Color.White.copy(alpha = 0.7f)) }
+        },
+        title = {
+            Text("Pick a Color (RGB)", color = Color.White)
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ColorPreview(color = initial)
+                    Text("→", color = Color.White)
+                    ColorPreview(color = Color(r / 255f, g / 255f, b / 255f))
+                }
+
+                ColorSlider("RED", r, { r = it }, 0f..255f)
+                ColorSlider("GREEN", g, { g = it }, 0f..255f)
+                ColorSlider("BLUE", b, { b = it }, 0f..255f)
+            }
+        },
+        containerColor = PaintifyColors.SurfaceVariant
+    )
+}
+

@@ -1,20 +1,21 @@
+
 /**
-Paintify - Image Analysis Screen & ViewModel
-
-Provides the UI and logic for analyzing imported images with AI.
-
-Group Members:
-Dustin
-Nolan
-Ian
-
-Description:
-This module defines the data models (DetectedLabel, DetectedObject),
-the AnalysisUiState sealed interface, and the AnalysisViewModel used
-to send an image to an AI service, parse the JSON response, and expose
-detection results as state. The AnalysisScreen composable displays the
-analyzed image with bounding boxes drawn on top and lists detected objects
-and labels with confidence scores, including loading and error states.
+ * Paintify - Image Analysis Screen & ViewModel
+ *
+ * Provides the UI and logic for analyzing imported images with AI.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * This module defines the data models (DetectedLabel, DetectedObject),
+ * the AnalysisUiState sealed interface, and the AnalysisViewModel used
+ * to send an image to an AI service, parse the JSON response, and expose
+ * detection results as state. The AnalysisScreen composable displays the
+ * analyzed image with bounding boxes drawn on top and lists detected objects
+ * and labels with confidence scores, including loading and error states.
  */
 package com.example.paintify.screens
 
@@ -24,14 +25,20 @@ import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults.cardColors
+import androidx.compose.material3.CardDefaults.cardElevation
+import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,20 +53,17 @@ import androidx.navigation.NavHostController
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
-import com.example.paintify.BuildConfig
 import coil.compose.rememberAsyncImagePainter
-
-
+import com.example.paintify.BuildConfig
+import com.example.paintify.ui.PaintifyColors
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
-
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
-
 
 data class DetectedLabel(
     val name: String,
@@ -76,7 +80,7 @@ data class DetectedObject(
     val yMax: Float
 )
 
- interface AnalysisUiState {
+interface AnalysisUiState {
     object Idle : AnalysisUiState
     object Loading : AnalysisUiState
     data class Success(
@@ -86,9 +90,9 @@ data class DetectedObject(
         val labels: List<DetectedLabel>,
         val objects: List<DetectedObject>
     ) : AnalysisUiState
+
     data class Error(val message: String) : AnalysisUiState
 }
-
 
 class AnalysisViewModel : ViewModel() {
 
@@ -105,7 +109,8 @@ class AnalysisViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val bytes = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
+                val bytes =
+                    context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
                 val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 val width = bmp.width
                 val height = bmp.height
@@ -165,9 +170,13 @@ class AnalysisViewModel : ViewModel() {
                 )
 
             } catch (e: Exception) {
-                Log.e("AnalysisViewModel", e.message
-                    ?: e.localizedMessage
-                    ?: e.toString(), e)
+                Log.e(
+                    "AnalysisViewModel",
+                    e.message
+                        ?: e.localizedMessage
+                        ?: e.toString(),
+                    e
+                )
                 _state.value = AnalysisUiState.Error(e.message ?: "Unknown error")
             }
         }
@@ -226,23 +235,17 @@ class AnalysisViewModel : ViewModel() {
     private fun sanitizeJson(raw: String): String {
         var s = raw.trim()
 
-        // If it starts with ``` (markdown code fence), strip the fences
         if (s.startsWith("```")) {
-            // Remove the first line (``` or ```json)
             val firstNewline = s.indexOf('\n')
             if (firstNewline != -1) {
                 s = s.substring(firstNewline + 1)
             }
-
-            // If the next line is "json" or similar, remove that too
             if (s.startsWith("json")) {
                 val secondNewline = s.indexOf('\n')
                 if (secondNewline != -1) {
                     s = s.substring(secondNewline + 1)
                 }
             }
-
-            // Remove trailing ``` if present
             if (s.endsWith("```")) {
                 s = s.substring(0, s.length - 3)
             }
@@ -251,9 +254,6 @@ class AnalysisViewModel : ViewModel() {
         return s.trim()
     }
 }
-
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -271,33 +271,54 @@ fun AnalysisScreen(
     }
 
     Scaffold(
+        containerColor = PaintifyColors.Background,
         topBar = {
             TopAppBar(
-                title = { Text("Image Analysis") },
+                title = {
+                    Text(
+                        "Image Analysis",
+                        color = Color.White
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            tint = Color.White
                         )
                     }
-                }
+                },
+                colors = topAppBarColors(
+                    containerColor = PaintifyColors.Surface,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                )
             )
         }
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(PaintifyColors.Background)
                 .padding(padding)
         ) {
             when (val s = state) {
                 AnalysisUiState.Idle,
                 AnalysisUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = PaintifyColors.Accent)
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Analyzing image…",
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
                     }
                 }
 
@@ -306,14 +327,37 @@ fun AnalysisScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "Error: ${s.message}",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Button(onClick = { vm.analyzeImage(context, imageUri) }) {
-                                Text("Retry")
+                        Card(
+                            colors = cardColors(
+                                containerColor = PaintifyColors.Surface
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            elevation = cardElevation(6.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Analysis failed",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color.White
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = s.message,
+                                    color = PaintifyColors.Error
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Button(
+                                    onClick = { vm.analyzeImage(context, imageUri) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = PaintifyColors.Accent,
+                                        contentColor = Color.White
+                                    )
+                                ) {
+                                    Text("Retry")
+                                }
                             }
                         }
                     }
@@ -333,7 +377,6 @@ fun AnalysisScreen(
     }
 }
 
-
 @Composable
 internal fun AnalysisContent(
     imageUri: Uri,
@@ -345,109 +388,160 @@ internal fun AnalysisContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .background(PaintifyColors.Background)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Image + overlay
-        Box(
+        Text(
+            text = "Overview",
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White
+        )
+
+        // Image + overlay card
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(
                     if (imageHeight == 0) 1f
                     else imageWidth.toFloat() / imageHeight.toFloat()
-                )
+                ),
+            shape = RoundedCornerShape(20.dp),
+            colors = cardColors(
+                containerColor = PaintifyColors.SurfaceVariant
+            ),
+            elevation = cardElevation(defaultElevation = 8.dp)
         ) {
-            Image(
-                painter = rememberAsyncImagePainter(imageUri),
-                contentDescription = "Analyzed image",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize()
-            )
+            Box {
+                Image(
+                    painter = rememberAsyncImagePainter(imageUri),
+                    contentDescription = "Analyzed image",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize()
+                )
 
-            Canvas(
-                modifier = Modifier.matchParentSize()
-            ) {
-                val canvasWidth = size.width
-                val canvasHeight = size.height
+                Canvas(
+                    modifier = Modifier.matchParentSize()
+                ) {
+                    val canvasWidth = size.width
+                    val canvasHeight = size.height
 
+                    objects.forEach { obj ->
+                        val left = obj.xMin * canvasWidth
+                        val top = obj.yMin * canvasHeight
+                        val right = obj.xMax * canvasWidth
+                        val bottom = obj.yMax * canvasHeight
 
-                objects.forEach { obj ->
-                    val left = obj.xMin * canvasWidth
-                    val top = obj.yMin * canvasHeight
-                    val right = obj.xMax * canvasWidth
-                    val bottom = obj.yMax * canvasHeight
-
-                    drawRect(
-                        color = Color.Red.copy(alpha = 0.85f),
-                        topLeft = Offset(left, top),
-                        size = androidx.compose.ui.geometry.Size(
-                            width = (right - left).coerceAtLeast(1f),
-                            height = (bottom - top).coerceAtLeast(1f)
-                        ),
-                        style = Stroke(width = 3f)
-                    )
+                        drawRect(
+                            color = PaintifyColors.AccentSoft.copy(alpha = 0.9f),
+                            topLeft = Offset(left, top),
+                            size = androidx.compose.ui.geometry.Size(
+                                width = (right - left).coerceAtLeast(1f),
+                                height = (bottom - top).coerceAtLeast(1f)
+                            ),
+                            style = Stroke(width = 3f)
+                        )
+                    }
                 }
             }
         }
 
-        // Scrollable results
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-        ) {
-            Text(
-                "Detected Objects",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(4.dp))
+        // Detected objects
+        Text(
+            "Detected Objects",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
 
-            if (objects.isEmpty()) {
-                Text(
-                    "No objects detected.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 200.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(objects) { obj ->
+        if (objects.isEmpty()) {
+            Text(
+                "No objects detected.",
+                color = Color.White.copy(alpha = 0.6f)
+            )
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                objects.forEach { obj ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = cardColors(
+                            containerColor = PaintifyColors.Surface
+                        ),
+                        elevation = cardElevation(2.dp)
+                    ) {
                         ListItem(
-                            headlineContent = { Text(obj.name) },
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Transparent,
+                                headlineColor = Color.White,
+                                supportingColor = Color.White.copy(alpha = 0.7f)
+                            ),
+                            headlineContent = {
+                                Text(obj.name)
+                            },
                             supportingContent = {
                                 val conf = (obj.confidence * 100).toInt()
-                                Text("Confidence: $conf%  ${obj.category ?: ""}")
+                                val cat = obj.category ?: "Uncategorized"
+                                Text("Confidence: $conf%  •  $cat")
                             }
                         )
-                        Divider()
                     }
                 }
             }
+        }
 
-            Spacer(Modifier.height(12.dp))
+        // Labels
+        Text(
+            "Labels",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
 
+        if (labels.isEmpty()) {
             Text(
-                "Labels",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                "No labels detected.",
+                color = Color.White.copy(alpha = 0.6f)
             )
-            Spacer(Modifier.height(4.dp))
-
-            if (labels.isEmpty()) {
-                Text(
-                    "No labels detected.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 labels.forEach { label ->
                     val conf = (label.confidence * 100).toInt()
-                    Text("- ${label.name} — $conf%")
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = PaintifyColors.SurfaceVariant,
+                        tonalElevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .background(
+                                        color = PaintifyColors.Accent,
+                                        shape = CircleShape
+                                    )
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = label.name,
+                                color = Color.White
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "$conf%",
+                                color = Color.White.copy(alpha = 0.7f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
+

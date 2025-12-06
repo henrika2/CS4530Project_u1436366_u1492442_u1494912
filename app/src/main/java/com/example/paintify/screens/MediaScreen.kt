@@ -4,25 +4,30 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults.cardColors
+import androidx.compose.material3.CardDefaults.cardElevation
+import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import com.example.paintify.DrawApplication
 import com.example.paintify.cloud.CloudDrawing
 import com.example.paintify.cloud.CloudSync
 import com.example.paintify.data.DrawingRepository
+import com.example.paintify.ui.PaintifyColors
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -53,7 +58,6 @@ fun MediaScreen(navController: NavHostController) {
     val user = Firebase.auth.currentUser
     val scope = rememberCoroutineScope()
 
-    // -------- STATE --------
     var myCloudImages by remember { mutableStateOf<List<CloudDrawing>>(emptyList()) }
     var sharedByMe by remember { mutableStateOf<List<SharedDrawing>>(emptyList()) }
     var sharedWithMe by remember { mutableStateOf<List<SharedDrawing>>(emptyList()) }
@@ -133,29 +137,35 @@ fun MediaScreen(navController: NavHostController) {
     }
 
     Scaffold(
+        containerColor = PaintifyColors.Background,
         topBar = {
             TopAppBar(
-                title = { Text("Media Gallery") }
+                title = { Text("Media Gallery", color = Color.White) },
+                colors = topAppBarColors(
+                    containerColor = PaintifyColors.Surface,
+                    titleContentColor = Color.White
+                )
             )
         }
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(PaintifyColors.Background)
                 .padding(padding)
         ) {
             when {
                 isLoading -> {
                     CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier.align(Alignment.Center),
+                        color = PaintifyColors.Accent
                     )
                 }
 
                 errorMessage != null -> {
                     Text(
                         text = errorMessage!!,
-                        color = MaterialTheme.colorScheme.error,
+                        color = PaintifyColors.Error,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -180,7 +190,8 @@ fun MediaScreen(navController: NavHostController) {
                             item {
                                 Text(
                                     "No cloud images yet.",
-                                    style = MaterialTheme.typography.bodyMedium
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.7f)
                                 )
                             }
                         } else {
@@ -207,7 +218,7 @@ fun MediaScreen(navController: NavHostController) {
                             }
                         }
 
-                        // -------- SHARED BY ME --------
+                        //SHARED BY ME
                         item {
                             Spacer(Modifier.height(8.dp))
                             SectionHeader(
@@ -221,7 +232,8 @@ fun MediaScreen(navController: NavHostController) {
                             item {
                                 Text(
                                     "You haven't shared any drawings yet.",
-                                    style = MaterialTheme.typography.bodyMedium
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.7f)
                                 )
                             }
                         } else {
@@ -246,7 +258,7 @@ fun MediaScreen(navController: NavHostController) {
                             }
                         }
 
-                        // -------- SHARED WITH ME --------
+                        //SHARED WITH ME
                         item {
                             Spacer(Modifier.height(8.dp))
                             SectionHeader(
@@ -260,7 +272,8 @@ fun MediaScreen(navController: NavHostController) {
                             item {
                                 Text(
                                     "No one has shared drawings with you yet.",
-                                    style = MaterialTheme.typography.bodyMedium
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.7f)
                                 )
                             }
                         } else {
@@ -301,10 +314,10 @@ private fun SectionHeader(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null)
+        Icon(icon, contentDescription = null, tint = Color.White)
         Spacer(Modifier.width(8.dp))
         Column {
-            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(title, style = MaterialTheme.typography.titleMedium, color = Color.White)
             if (subtitle.isNotBlank()) {
                 Text(
                     subtitle,
@@ -328,7 +341,12 @@ fun CloudImageCard(
     onEdit: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = cardColors(
+            containerColor = PaintifyColors.SurfaceVariant
+        ),
+        elevation = cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
 
@@ -340,7 +358,8 @@ fun CloudImageCard(
                 Column(Modifier.weight(1f)) {
                     Text(
                         text = drawing.title.ifBlank { "Untitled" },
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
                     )
 
                     val formatted = remember(drawing.timestamp) {
@@ -350,11 +369,13 @@ fun CloudImageCard(
 
                     Text(
                         text = "Uploaded: $formatted",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.7f)
                     )
                     Text(
                         text = "Creator: $creatorLabel",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.7f)
                     )
                 }
 
@@ -362,14 +383,15 @@ fun CloudImageCard(
                     Text(
                         text = "Shared",
                         style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = PaintifyColors.AccentSoft
                     )
                 }
 
                 Spacer(Modifier.height(8.dp))
 
                 TextButton(onClick = onEdit) {
-                    Text("Edit in Canvas")
+                    Text("Edit in Canvas", color = PaintifyColors.AccentSoft)
                 }
 
             }
@@ -386,8 +408,8 @@ fun CloudImageCard(
                     model = drawing.imageUrl,
                     contentDescription = drawing.title,
                     modifier = Modifier
-                        .width(100.dp)
-                        .height(180.dp),
+                        .width(120.dp)
+                        .height(190.dp),
                     contentScale = ContentScale.Fit
                 )
             }
@@ -406,7 +428,12 @@ fun SharedImageCard(
     onEdit: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = cardColors(
+            containerColor = PaintifyColors.Surface
+        ),
+        elevation = cardElevation(3.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
 
@@ -418,7 +445,8 @@ fun SharedImageCard(
                 Column(Modifier.weight(1f)) {
                     Text(
                         text = drawing.title.ifBlank { "Untitled" },
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
                     )
 
                     val formatted = remember(drawing.timestamp) {
@@ -428,29 +456,29 @@ fun SharedImageCard(
 
                     Text(
                         text = "Shared: $formatted",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.7f)
                     )
                     Text(
                         text = label,
                         style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
                     )
                 }
 
                 Text(
                     text = "Shared",
                     style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = PaintifyColors.AccentSoft
                 )
 
                 Spacer(Modifier.height(8.dp))
 
                 TextButton(onClick = onEdit) {
-                    Text("Edit in Canvas")
+                    Text("Edit in Canvas", color = PaintifyColors.AccentSoft)
                 }
-
-
-
             }
 
             Spacer(Modifier.height(8.dp))
@@ -465,11 +493,12 @@ fun SharedImageCard(
                     model = drawing.imageUrl,
                     contentDescription = drawing.title,
                     modifier = Modifier
-                        .width(100.dp)
-                        .height(180.dp),
+                        .width(120.dp)
+                        .height(190.dp),
                     contentScale = ContentScale.Fit
                 )
             }
         }
     }
 }
+

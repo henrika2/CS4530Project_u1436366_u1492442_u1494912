@@ -1,4 +1,5 @@
 package com.example.paintify.screens
+
 /**
  * Paintify - Home Screen
  * ----------------------
@@ -32,14 +33,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults.cardColors
+import androidx.compose.material3.CardDefaults.cardElevation
+import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -58,6 +64,7 @@ import com.example.paintify.cloud.CloudSync
 import com.example.paintify.cloud.SharedDrawing
 import com.example.paintify.data.DrawingData
 import com.example.paintify.data.DrawingRepository
+import com.example.paintify.ui.PaintifyColors
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.SharingStarted
@@ -65,7 +72,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
-
 
 class HomeViewModel(
     private val repo: DrawingRepository
@@ -97,19 +103,15 @@ fun HomeScreen(
     val ctx = LocalContext.current
     val drawings by vm.drawings.collectAsState()
 
-
     // NEW: Cloud sync
-    // Auth + coroutine scope
     val auth = Firebase.auth
     val user = auth.currentUser
 
-    // Cloud drawings state
     var cloudDrawings by remember { mutableStateOf<List<CloudDrawing>>(emptyList()) }
     var isCloudLoading by remember { mutableStateOf(false) }
     var cloudError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    //Cloud shared
     var sharedToMe by remember { mutableStateOf<List<SharedDrawing>>(emptyList()) }
     var sharedToMeError by remember { mutableStateOf<String?>(null) }
     var isSharedToMeLoading by remember { mutableStateOf(false) }
@@ -156,7 +158,6 @@ fun HomeScreen(
         }
     }
 
-
     // Gallery picker
     val pickMedia = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -172,63 +173,97 @@ fun HomeScreen(
         }
     }
 
-
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Paintify — Saved Drawings") }) },
+        containerColor = PaintifyColors.Background,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Paintify — Saved Drawings",
+                        color = Color.White
+                    )
+                },
+                colors = topAppBarColors(
+                    containerColor = PaintifyColors.Surface,
+                    titleContentColor = Color.White
+                )
+            )
+        },
         floatingActionButton = {
             Row(
                 modifier = Modifier.padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-
-
-
-                // Analyze Image button
                 ExtendedFloatingActionButton(
                     text = { Text("Analyze") },
-                    icon = { Icon(Icons.Default.IosShare, contentDescription = "Analyze") },
+                    icon = {
+                        Icon(
+                            Icons.Default.IosShare,
+                            contentDescription = "Analyze"
+                        )
+                    },
                     onClick = {
                         pickForAnalysis.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
-                    }
+                    },
+                    containerColor = PaintifyColors.Accent,
+                    contentColor = Color.White
                 )
 
                 ExtendedFloatingActionButton(
                     text = { Text("Import") },
-                    icon = { Icon(Icons.Default.IosShare, contentDescription = "Import") },
+                    icon = {
+                        Icon(
+                            Icons.Default.IosShare,
+                            contentDescription = "Import"
+                        )
+                    },
                     onClick = {
                         pickMedia.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
-                    }
+                    },
+                    containerColor = PaintifyColors.SurfaceVariant,
+                    contentColor = Color.White
                 )
 
                 ExtendedFloatingActionButton(
                     text = { Text("Media") },
-                    icon = { Icon(Icons.Default.IosShare, contentDescription = "Media") },
-                    onClick = { navController.navigate("media") }
+                    icon = {
+                        Icon(
+                            Icons.Default.IosShare,
+                            contentDescription = "Media"
+                        )
+                    },
+                    onClick = { navController.navigate("media") },
+                    containerColor = PaintifyColors.SurfaceVariant,
+                    contentColor = Color.White
                 )
 
-                // New drawing (blank canvas)
-                FloatingActionButton(onClick = { navController.navigate("canvas") }) {
+                FloatingActionButton(
+                    onClick = { navController.navigate("canvas") },
+                    containerColor = PaintifyColors.Accent,
+                    contentColor = Color.White
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "New")
                 }
-
-
             }
         }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(PaintifyColors.Background)
                 .padding(padding)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (drawings.isEmpty() && cloudDrawings.isEmpty() && sharedToMe.isEmpty()) {
-                Text("No saved drawings yet. Tap  ➕  to start, or Import from gallery.")
+                Text(
+                    "No saved drawings yet.\nTap ➕ to start, or Import from gallery.",
+                    color = Color.White.copy(alpha = 0.8f)
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -242,13 +277,13 @@ fun HomeScreen(
                         )
                     }
 
-
-                    //NEW: Cloud sync
+                    // Cloud drawings section
                     item {
                         Spacer(Modifier.height(16.dp))
                         Text(
                             text = "Your Cloud Drawings",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White
                         )
                     }
 
@@ -261,7 +296,7 @@ fun HomeScreen(
                                         .padding(8.dp),
                                     horizontalArrangement = Arrangement.Center
                                 ) {
-                                    CircularProgressIndicator()
+                                    CircularProgressIndicator(color = PaintifyColors.Accent)
                                 }
                             }
                         }
@@ -270,7 +305,7 @@ fun HomeScreen(
                             item {
                                 Text(
                                     text = "Error loading cloud drawings: $cloudError",
-                                    color = MaterialTheme.colorScheme.error,
+                                    color = PaintifyColors.Error,
                                     modifier = Modifier.padding(8.dp)
                                 )
 
@@ -282,7 +317,8 @@ fun HomeScreen(
                             item {
                                 Text(
                                     text = "No cloud drawings yet.",
-                                    modifier = Modifier.padding(8.dp)
+                                    modifier = Modifier.padding(8.dp),
+                                    color = Color.White.copy(alpha = 0.7f)
                                 )
                             }
                         }
@@ -299,7 +335,6 @@ fun HomeScreen(
                                     onUnshare = {
                                         val sender = user
                                         if (sender == null) {
-                                            // You can show a Toast or error here if you like
                                             return@CloudDrawingRow
                                         }
 
@@ -309,10 +344,8 @@ fun HomeScreen(
                                                     senderId = sender.uid,
                                                     imageUrl = cloud.imageUrl
                                                 )
-
                                             } catch (e: Exception) {
                                                 e.printStackTrace()
-
                                             }
                                         }
                                     }
@@ -321,12 +354,13 @@ fun HomeScreen(
                         }
                     }
 
-                    //Could shared
+                    // Shared to me section
                     item {
                         Spacer(Modifier.height(16.dp))
                         Text(
                             text = "Drawings Shared With You",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White
                         )
                     }
 
@@ -339,7 +373,7 @@ fun HomeScreen(
                                         .padding(8.dp),
                                     horizontalArrangement = Arrangement.Center
                                 ) {
-                                    CircularProgressIndicator()
+                                    CircularProgressIndicator(color = PaintifyColors.Accent)
                                 }
                             }
                         }
@@ -348,7 +382,7 @@ fun HomeScreen(
                             item {
                                 Text(
                                     text = "Error loading shared drawings: $sharedToMeError",
-                                    color = MaterialTheme.colorScheme.error,
+                                    color = PaintifyColors.Error,
                                     modifier = Modifier.padding(8.dp)
                                 )
                             }
@@ -358,7 +392,8 @@ fun HomeScreen(
                             item {
                                 Text(
                                     text = "No one has shared drawings with you yet.",
-                                    modifier = Modifier.padding(8.dp)
+                                    modifier = Modifier.padding(8.dp),
+                                    color = Color.White.copy(alpha = 0.7f)
                                 )
                             }
                         }
@@ -369,10 +404,7 @@ fun HomeScreen(
                             }
                         }
                     }
-
-
                 }
-
 
                 if (shareTargetCloud != null) {
                     AlertDialog(
@@ -380,20 +412,34 @@ fun HomeScreen(
                             shareTargetCloud = null
                             shareError = null
                         },
-                        title = { Text("Share Drawing") },
+                        title = { Text("Share Drawing", color = Color.White) },
                         text = {
                             Column {
-                                Text("Send \"${shareTargetCloud!!.title}\" to:")
+                                Text(
+                                    "Send \"${shareTargetCloud!!.title}\" to:",
+                                    color = Color.White
+                                )
                                 Spacer(Modifier.height(8.dp))
                                 OutlinedTextField(
                                     value = shareEmail,
                                     onValueChange = { shareEmail = it },
                                     label = { Text("Recipient email") },
-                                    singleLine = true
+                                    singleLine = true,
+                                    colors = TextFieldDefaults.colors(
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White,
+                                        cursorColor = PaintifyColors.Accent,
+                                        focusedIndicatorColor = PaintifyColors.Accent,
+                                        unfocusedIndicatorColor = PaintifyColors.Surface,
+                                        focusedLabelColor = PaintifyColors.Accent,
+                                        unfocusedLabelColor = Color.LightGray,
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent
+                                    )
                                 )
                                 shareError?.let {
                                     Spacer(Modifier.height(4.dp))
-                                    Text(it, color = MaterialTheme.colorScheme.error)
+                                    Text(it, color = PaintifyColors.Error)
                                 }
                             }
                         },
@@ -432,7 +478,10 @@ fun HomeScreen(
                                     }
                                 }
                             ) {
-                                Text(if (isSharing) "Sharing..." else "Share")
+                                Text(
+                                    if (isSharing) "Sharing..." else "Share",
+                                    color = PaintifyColors.AccentSoft
+                                )
                             }
                         },
                         dismissButton = {
@@ -442,116 +491,13 @@ fun HomeScreen(
                                     shareError = null
                                 }
                             ) {
-                                Text("Cancel")
+                                Text("Cancel", color = Color.White.copy(alpha = 0.7f))
                             }
-                        }
-                    )
-                }
-
-
-
-            }
-
-        }
-    }
-}
-
-//NEW: Cloud share
-@Composable
-fun SharedDrawingCard(shared: SharedDrawing) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = shared.title.ifBlank { "Untitled" },
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            val formatted = remember(shared.timestamp) {
-                java.text.SimpleDateFormat("MMM d, yyyy HH:mm")
-                    .format(java.util.Date(shared.timestamp))
-            }
-
-            Text(
-                text = "From: ${shared.senderId.take(8)}… • $formatted",
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = shared.imageUrl,
-                    contentDescription = shared.title,
-                    modifier = Modifier
-                        .width(100.dp)
-                        .height(180.dp),
-                    contentScale = ContentScale.Fit
-                )
-            }
-        }
-    }
-}
-
-//NEW: Cloud sync
-@Composable
-fun CloudDrawingRow(drawing: CloudDrawing, onShare: () -> Unit, onUnshare: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = drawing.title.ifBlank { "Untitled" },
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = "Uploaded: " +
-                                java.text.SimpleDateFormat("MMM d, yyyy HH:mm")
-                                    .format(java.util.Date(drawing.timestamp)),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                IconButton(onClick = onShare) {
-                    Icon(Icons.Default.IosShare, contentDescription = "Share")
-                }
-                IconButton(onClick = onUnshare) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Unshare cloud drawing"
+                        },
+                        containerColor = PaintifyColors.SurfaceVariant
                     )
                 }
             }
-
-
-
-            Spacer(Modifier.height(4.dp))
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = drawing.imageUrl,
-                    contentDescription = drawing.title,
-                    modifier = Modifier
-                        .width(100.dp)
-                        .height(180.dp),
-                    contentScale = ContentScale.FillBounds
-                )
-            }
-
-
         }
     }
 }
@@ -565,7 +511,12 @@ private fun DrawingCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onOpen)
+            .clickable(onClick = onOpen),
+        shape = RoundedCornerShape(18.dp),
+        colors = cardColors(
+            containerColor = PaintifyColors.SurfaceVariant
+        ),
+        elevation = cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -574,17 +525,25 @@ private fun DrawingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(text = drawing.name, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = drawing.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
                     Text(
                         text = "Saved: " +
-                                java.text.SimpleDateFormat("MMM d, yyyy").format(drawing.createdAt),
-                        style = MaterialTheme.typography.bodySmall
+                                java.text.SimpleDateFormat("MMM d, yyyy")
+                                    .format(drawing.createdAt),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.7f)
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete")
-                    }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = PaintifyColors.Error
+                    )
                 }
             }
 
@@ -600,14 +559,136 @@ private fun DrawingCard(
                         contentDescription = drawing.name,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp)
+                            .height(180.dp),
+                        contentScale = ContentScale.Crop
                     )
                 } else {
-                    Text("Preview unavailable", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        "Preview unavailable",
+                        color = PaintifyColors.Error
+                    )
                 }
             } else {
-                Text("Image missing", color = MaterialTheme.colorScheme.error)
+                Text(
+                    "Image missing",
+                    color = PaintifyColors.Error
+                )
             }
         }
     }
 }
+
+// Cloud share UI
+@Composable
+fun SharedDrawingCard(shared: SharedDrawing) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = cardColors(
+            containerColor = PaintifyColors.Surface
+        ),
+        elevation = cardElevation(3.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = shared.title.ifBlank { "Untitled" },
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White
+            )
+
+            val formatted = remember(shared.timestamp) {
+                java.text.SimpleDateFormat("MMM d, yyyy HH:mm")
+                    .format(java.util.Date(shared.timestamp))
+            }
+
+            Text(
+                text = "From: ${shared.senderId.take(8)}… • $formatted",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = shared.imageUrl,
+                    contentDescription = shared.title,
+                    modifier = Modifier
+                        .width(120.dp)
+                        .height(190.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CloudDrawingRow(drawing: CloudDrawing, onShare: () -> Unit, onUnshare: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = cardColors(
+            containerColor = PaintifyColors.Surface
+        ),
+        elevation = cardElevation(3.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = drawing.title.ifBlank { "Untitled" },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Uploaded: " +
+                                java.text.SimpleDateFormat("MMM d, yyyy HH:mm")
+                                    .format(java.util.Date(drawing.timestamp)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                }
+                IconButton(onClick = onShare) {
+                    Icon(
+                        imageVector = Icons.Default.IosShare,
+                        contentDescription = "Share",
+                        tint = PaintifyColors.AccentSoft
+                    )
+                }
+                IconButton(onClick = onUnshare) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Unshare cloud drawing",
+                        tint = PaintifyColors.Error
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = drawing.imageUrl,
+                    contentDescription = drawing.title,
+                    modifier = Modifier
+                        .width(120.dp)
+                        .height(190.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
+    }
+}
+

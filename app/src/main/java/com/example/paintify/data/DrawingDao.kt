@@ -2,7 +2,12 @@ package com.example.paintify.data
 
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
-
+/**
+ * Data access object (DAO) for the `drawings` table.
+ *
+ * This interface defines all database operations related to [DrawingData].
+ * Room generates the implementation at compile time.
+ */
 @Dao
 interface DrawingDao {
     @Insert
