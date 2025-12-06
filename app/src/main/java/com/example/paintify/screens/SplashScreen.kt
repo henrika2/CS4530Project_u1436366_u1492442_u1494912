@@ -52,7 +52,15 @@ import androidx.compose.ui.graphics.Brush
 
 
 /**
- * Robust splash: if [logoResId] is null or invalid, we show a text fallback.
+ * Paintify - Splash Screen
+ * -----------------------
+ * Shows an animated Paintify logo on app launch, then navigates to the
+ * main app once the animation delay has finished.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
  */
 @Composable
 fun SplashScreen(

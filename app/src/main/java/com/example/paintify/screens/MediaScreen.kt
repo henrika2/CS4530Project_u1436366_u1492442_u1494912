@@ -38,7 +38,17 @@ import java.util.Locale
 import java.util.Date
 
 /**
- * A Firestore representation of a "shared_drawings" document.
+ * Paintify - Media Screen
+ * -----------------------
+ * Displays the cloud-synced drawings for the current user along with any
+ * drawings they have shared with others or that others have shared with them.
+ * This acts as a media hub for browsing and re-editing online content.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
  */
 data class SharedDrawing(
     val id: String = "",

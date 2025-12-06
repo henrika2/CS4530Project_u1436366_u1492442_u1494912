@@ -30,14 +30,12 @@ object CloudSync {
         val timestamp = System.currentTimeMillis()
         val fileName = "$timestamp.png"
 
-        // 1) Read file bytes
         val bytes = file.readBytes()
 
         Log.d("CloudSync", "Uploading file ${filePath}")
         Log.d("CloudSync", "Storage bucket: ${storage.reference.bucket}")
         Log.d("CloudSync", "Full path: drawings/$userId/$fileName")
 
-        // 2) Upload to Storage
         val storageRef = storage.reference
             .child("drawings")
             .child(userId)
@@ -45,10 +43,8 @@ object CloudSync {
 
         storageRef.putBytes(bytes).await()
 
-        // 3) Get download URL
         val downloadUrl = storageRef.downloadUrl.await().toString()
 
-        // 4) Save metadata in Firestore
         val docRef = db.collection(COLLECTION_NAME).document()
 
         val cloudDrawing = CloudDrawing(

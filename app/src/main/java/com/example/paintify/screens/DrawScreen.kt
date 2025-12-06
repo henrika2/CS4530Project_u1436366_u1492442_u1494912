@@ -80,8 +80,20 @@ import kotlinx.coroutines.flow.update
 import java.io.File
 
 /**
- * ViewModel class responsible for managing all drawing-related states
- * such as brush type, color, pen width, and drawn strokes.
+ * Paintify - Drawing Screen
+ * -------------------------
+ * Hosts the main canvas UI and drawing logic for freehand shapes, colors,
+ * erasing, and pen width control.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * Defines `DrawingViewModel` plus `DrawScreen` / `DrawScreenWithBackground`,
+ * which manage strokes, tools, colors, and saving merged drawings through
+ * the `DrawingRepository`.
  */
 class DrawingViewModel(private val repository: DrawingRepository) : ViewModel() {
     val selectedDrawing: StateFlow<DrawingData?> =

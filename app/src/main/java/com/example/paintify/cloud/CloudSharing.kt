@@ -43,7 +43,6 @@ object CloudSharing {
 
     /**
      * Unshare a drawing: delete all shared_drawings docs for this sender + imageUrl.
-     * (You could refine this to use the doc id if you store it per card.)
      */
     suspend fun unshareDrawing(
         senderId: String,
@@ -81,10 +80,9 @@ object CloudSharing {
             "imageUrl" to imageUrl,
             "title" to title,
             "timestamp" to timestamp,
-            "type" to "cloud"  // optional, but handy if you also store local shares here
+            "type" to "cloud"
         )
 
-        // Fire-and-forget-ish, but suspend until write completes
         db.collection(COLLECTION_NAME)
             .add(data)
             .await()

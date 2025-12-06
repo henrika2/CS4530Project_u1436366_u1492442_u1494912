@@ -36,6 +36,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material3.*
@@ -179,7 +181,7 @@ fun HomeScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Paintify — Saved Drawings",
+                        "Your Drawings",
                         color = Color.White
                     )
                 },
@@ -192,14 +194,14 @@ fun HomeScreen(
         floatingActionButton = {
             Row(
                 modifier = Modifier.padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 ExtendedFloatingActionButton(
-                    text = { Text("Analyze") },
+                    text = { },
                     icon = {
                         Icon(
-                            Icons.Default.IosShare,
-                            contentDescription = "Analyze"
+                            Icons.Default.AutoAwesome,
+                            contentDescription = "AI"
                         )
                     },
                     onClick = {
@@ -229,11 +231,11 @@ fun HomeScreen(
                 )
 
                 ExtendedFloatingActionButton(
-                    text = { Text("Media") },
+                    text = {Text("Gallery")},
                     icon = {
                         Icon(
-                            Icons.Default.IosShare,
-                            contentDescription = "Media"
+                            Icons.Default.CloudUpload,
+                            contentDescription = "Gallery"
                         )
                     },
                     onClick = { navController.navigate("media") },

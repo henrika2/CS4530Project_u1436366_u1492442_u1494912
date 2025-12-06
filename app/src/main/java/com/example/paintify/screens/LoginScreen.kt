@@ -22,6 +22,27 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import androidx.compose.material3.TextFieldDefaults
 
+/**
+ * Paintify - Login Screen
+ * -----------------------
+ * Provides the authentication entry point for the app where users can
+ * sign in or create an account before accessing the main Paintify
+ * experience.
+ *
+ * Group Members:
+ *  - Dustin
+ *  - Nolan
+ *  - Ian
+ *
+ * Description:
+ * `LoginScreen` renders a gradient background card with email and
+ * password fields backed by Firebase Authentication. When the user is
+ * not logged in, it shows inputs and actions to sign in or create a new
+ * account, surfacing any error messages from Firebase. Once authenticated,
+ * it greets the user, offers navigation to the `home` screen, and provides
+ * a sign-out button to clear the current session.
+ */
+
 @Composable
 fun LoginScreen(navController: NavHostController) {
     val auth = Firebase.auth
